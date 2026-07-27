@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from app.core.config import settings
 
 engine = create_async_engine(
-    settings.SQLALCHEMY_DATABASE_URI.replace("postgresql://", "postgresql+asyncpg://"),
+    settings.SQLALCHEMY_DATABASE_URI,
     echo=False,          # Set to True if you want to see the raw SQL queries in the console
     pool_size=5,         # Keep 5 connections open and ready at all times
     max_overflow=10      # Allow up to 10 extra connections during traffic spikes

@@ -1,23 +1,23 @@
 from datetime import datetime
-from sqlalchemy import String, Enum, DateTime
+from typing import Optional, TYPE_CHECKING
+from sqlalchemy import String, Enum, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.base import Base
 import enum
 from uuid import uuid4
 
+if TYPE_CHECKING:
+    from app.domains.kpis.models import KPIRecord
+    from app.domains.users.models import User
 
-# ==========================================
-# ENUMS
-# ==========================================
 
 class ProjectStatus(str, enum.Enum):
     ACTIVE = "ACTIVE"
     COMPLETED = "COMPLETED"
     SUSPENDED = "SUSPENDED"
-    
+
     @classmethod
     def _missing_(cls, value):
-        """Handle case-insensitive status values"""
         if isinstance(value, str):
             upper_value = value.upper()
             for member in cls:
@@ -26,50 +26,52 @@ class ProjectStatus(str, enum.Enum):
         return None
 
 
-# ==========================================
-# MODEL
-# ==========================================
-
 class Project(Base):
     __tablename__ = "projects"
-    
-    # Primary Key
+
     id: Mapped[str] = mapped_column(
-        String(36), 
-        primary_key=True, 
+        String(36),
+        primary_key=True,
         default=lambda: str(uuid4())
     )
-    
-    # Business Fields
+
     name: Mapped[str] = mapped_column(
-        String, 
-        unique=True, 
-        nullable=False, 
+        String,
+        unique=True,
+        nullable=False,
         index=True
     )
-    
+
     status: Mapped[ProjectStatus] = mapped_column(
-        Enum(ProjectStatus), 
-        nullable=False, 
+        Enum(ProjectStatus),
+        nullable=False,
         default=ProjectStatus.ACTIVE
     )
-    
-    # Timestamps
+
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, 
-        default=datetime.utcnow, 
+        DateTime,
+        default=datetime.utcnow,
         nullable=False
     )
 
-    description: Mapped[str] = mapped_column(
-        String,
+    description: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True, default=None
     )
-    
-    # Relationships
+
+    created_by: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True
+    )
+
     kpi_records: Mapped[list["KPIRecord"]] = relationship(
         back_populates="project",
         cascade="all, delete-orphan"
     )
-    
+
+    creator: Mapped[Optional["User"]] = relationship(back_populates="projects")
+
     def __repr__(self) -> str:
-        return f"<Project(id={self.id}, name={self.name}, status={self.status}, descprition={self.description})>"
+        return f"<Project(id={self.id}, name={self.name}, status={self.status}, description={self.description})>"
+
+
+from app.domains.kpis.models import KPIRecord  # noqa: E402, F811
+from app.domains.users.models import User  # noqa: E402, F811

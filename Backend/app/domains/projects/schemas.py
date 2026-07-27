@@ -7,6 +7,8 @@ from enum import Enum
 class ProjectStatusEnum(str, Enum):
     ACTIVE = "ACTIVE"
     COMPLETED = "COMPLETED"
+    SUSPENDED = "SUSPENDED"
+
 
 class ProjectBase(BaseModel):
     name: str = Field(

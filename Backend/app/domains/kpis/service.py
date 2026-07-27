@@ -1,0 +1,182 @@
+from typing import Sequence
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
+from fastapi import HTTPException, status
+
+from app.domains.kpis.models import KPIDefinition, KPIRecord, KpiType
+from app.domains.kpis.schemas import (
+    KPIDefinitionCreate, KPIRecordCreate, KPIRecordUpdate, KPIRecordBulkCreate
+)
+from app.domains.projects.models import Project
+
+class KPIService:
+    
+    # ==========================================
+    # KPI DEFINITIONS LOGIC
+    # ==========================================
+    
+    @staticmethod
+    async def create_definition(session: AsyncSession, data: KPIDefinitionCreate) -> KPIDefinition:
+        query = select(KPIDefinition).where(KPIDefinition.name == data.name)
+        result = await session.execute(query)
+        
+        if result.scalars().first():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"A KPI definition named '{data.name}' already exists."
+            )
+        
+        new_def = KPIDefinition(**data.model_dump())
+        session.add(new_def)
+        await session.commit()
+        await session.refresh(new_def)
+        
+        return new_def
+
+    @staticmethod
+    async def get_definitions(session: AsyncSession) -> Sequence[KPIDefinition]:
+        query = select(KPIDefinition)
+        result = await session.execute(query)
+        return result.scalars().all()
+
+
+    # ==========================================
+    # INTERNAL VALIDATION HELPERS
+    # ==========================================
+
+    @staticmethod
+    async def _validate_record(session: AsyncSession, data: KPIRecordCreate) -> tuple[Project, KPIDefinition]:
+        project = await session.get(Project, data.project_id)
+        if not project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Project '{data.project_id}' not found."
+            )
+
+        kpi_def = await session.get(KPIDefinition, data.kpi_id)
+        if not kpi_def:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"KPI definition '{data.kpi_id}' not found."
+            )
+
+        if not data.is_missing:
+            if kpi_def.kpi_type == KpiType.NUMERIC and data.numeric_value is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"KPI '{kpi_def.name}' expects a numeric value."
+                )
+            if kpi_def.kpi_type == KpiType.TEXT and data.text_value is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"KPI '{kpi_def.name}' expects a text value."
+                )
+
+        return project, kpi_def
+
+
+    # ==========================================
+    # SINGLE RECORD OPERATIONS
+    # ==========================================
+
+    @staticmethod
+    async def create_record(session: AsyncSession, data: KPIRecordCreate) -> KPIRecord:
+        await KPIService._validate_record(session, data)
+
+        new_record = KPIRecord(**data.model_dump())
+        session.add(new_record)
+        await session.commit()
+        await session.refresh(new_record)
+
+        return new_record
+
+    @staticmethod
+    async def get_record(session: AsyncSession, record_id: str) -> KPIRecord:
+        query = (
+            select(KPIRecord)
+            .where(KPIRecord.id == record_id)
+            .options(joinedload(KPIRecord.kpi_definition))
+        )
+        result = await session.execute(query)
+        record = result.scalar_one_or_none()
+
+        if not record:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"KPI record '{record_id}' not found."
+            )
+
+        return record
+
+    @staticmethod
+    async def update_record(session: AsyncSession, record_id: str, data: KPIRecordUpdate) -> KPIRecord:
+        record = await KPIService.get_record(session, record_id)
+
+        update_data = data.model_dump(exclude_unset=True)
+
+        if not update_data:
+            return record
+
+        if "kpi_id" in update_data:
+            kpi_def = await session.get(KPIDefinition, update_data["kpi_id"])
+            if not kpi_def:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"KPI definition '{update_data['kpi_id']}' not found."
+                )
+
+        for key, value in update_data.items():
+            setattr(record, key, value)
+
+        await session.commit()
+        await session.refresh(record)
+        return record
+
+    @staticmethod
+    async def delete_record(session: AsyncSession, record_id: str) -> None:
+        record = await KPIService.get_record(session, record_id)
+        await session.delete(record)
+        await session.commit()
+
+
+    # ==========================================
+    # BULK RECORD OPERATIONS
+    # ==========================================
+
+    @staticmethod
+    async def create_records_bulk(session: AsyncSession, data: KPIRecordBulkCreate) -> list[KPIRecord]:
+        for r in data.records:
+            await KPIService._validate_record(session, r)
+
+        records = [KPIRecord(**r.model_dump()) for r in data.records]
+        session.add_all(records)
+        await session.commit()
+
+        for r in records:
+            await session.refresh(r)
+
+        return records
+
+
+    # ==========================================
+    # QUERY OPERATIONS
+    # ==========================================
+
+    @staticmethod
+    async def get_project_records(
+        session: AsyncSession,
+        project_id: str,
+        period: str | None = None
+    ) -> Sequence[KPIRecord]:
+        query = (
+            select(KPIRecord)
+            .where(KPIRecord.project_id == project_id)
+            .options(joinedload(KPIRecord.kpi_definition))
+        )
+
+        if period:
+            query = query.where(KPIRecord.period == period)
+
+        result = await session.execute(query)
+        return result.scalars().all()

@@ -13,6 +13,11 @@ class KpiTypeEnum(str, Enum):
     TEXT = "TEXT"
 
 
+class RecordPeriodEnum(str, Enum):
+    DAILY = "DAILY"
+    WEEKLY = "WEEKLY"
+
+
 # ==========================================
 # KPI DEFINITION SCHEMAS
 # ==========================================
@@ -39,6 +44,7 @@ class KPIRecordBase(BaseModel):
     project_id: str
     kpi_id: str
     record_date: date
+    period: RecordPeriodEnum
     numeric_value: Optional[float] = None
     text_value: Optional[str] = None
     asset_url: Optional[str] = None
@@ -47,12 +53,28 @@ class KPIRecordBase(BaseModel):
 class KPIRecordCreate(KPIRecordBase):
     created_by: Optional[str] = None
 
+class KPIRecordUpdate(BaseModel):
+    record_date: Optional[date] = None
+    period: Optional[RecordPeriodEnum] = None
+    numeric_value: Optional[float] = None
+    text_value: Optional[str] = None
+    asset_url: Optional[str] = None
+    is_missing: Optional[bool] = None
+
 class KPIRecordResponse(KPIRecordBase):
     id: str
     created_at: datetime
+    created_by: Optional[str] = None
     kpi_definition: Optional[KPIDefinitionResponse] = None
     
     model_config = ConfigDict(from_attributes=True)
+
+class KPIRecordBulkCreate(BaseModel):
+    records: list[KPIRecordCreate]
+
+class KPIRecordBulkResponse(BaseModel):
+    records: list[KPIRecordResponse]
+    total: int
 
 
 # ==========================================
