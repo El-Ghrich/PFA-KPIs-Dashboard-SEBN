@@ -3,7 +3,6 @@ from datetime import date, datetime
 from typing import Optional
 from enum import Enum
 
-
 # ==========================================
 # ENUM SCHEMAS
 # ==========================================
