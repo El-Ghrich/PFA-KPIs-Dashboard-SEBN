@@ -21,6 +21,10 @@ class ProjectBase(BaseModel):
         default=ProjectStatusEnum.ACTIVE,
         description="Project status: ACTIVE or COMPLETED"
     )
+    location: Optional[str] = Field(
+        default="Morocco",
+        description="Project location/country"
+    )
 
 # ==========================================
 # CREATE SCHEMA
@@ -45,6 +49,10 @@ class ProjectUpdate(BaseModel):
     status: Optional[ProjectStatusEnum] = Field(
         None,
         description="New project status"
+    )
+    location: Optional[str] = Field(
+        None,
+        description="New project location"
     )
     
     @field_validator('name')

@@ -58,6 +58,10 @@ class Project(Base):
         String, nullable=True, default=None
     )
 
+    location: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True, default=None
+    )
+
     created_by: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=True
     )
@@ -70,7 +74,7 @@ class Project(Base):
     creator: Mapped[Optional["User"]] = relationship(back_populates="projects")
 
     def __repr__(self) -> str:
-        return f"<Project(id={self.id}, name={self.name}, status={self.status}, description={self.description})>"
+        return f"<Project(id={self.id}, name={self.name}, status={self.status}, location={self.location})>"
 
 
 from app.domains.kpis.models import KPIRecord  # noqa: E402, F811

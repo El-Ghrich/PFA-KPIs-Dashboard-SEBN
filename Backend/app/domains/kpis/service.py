@@ -167,7 +167,9 @@ class KPIService:
     async def get_project_records(
         session: AsyncSession,
         project_id: str,
-        period: str | None = None
+        period: str | None = None,
+        iso_year: int | None = None,
+        iso_week: int | None = None
     ) -> Sequence[KPIRecord]:
         query = (
             select(KPIRecord)
@@ -177,6 +179,11 @@ class KPIService:
 
         if period:
             query = query.where(KPIRecord.period == period)
+
+        if iso_year is not None and iso_week is not None:
+            from datetime import date
+            week_start = date.fromisocalendar(iso_year, iso_week, 1)
+            query = query.where(KPIRecord.record_date == week_start)
 
         result = await session.execute(query)
         return result.scalars().all()
