@@ -9,6 +9,7 @@ from app.domains.kpis.schemas import (
     KPIDefinitionCreate, KPIRecordCreate, KPIRecordUpdate, KPIRecordBulkCreate
 )
 from app.domains.projects.models import Project
+from app.api.dependencies import UserSession
 
 class KPIService:
     
@@ -81,10 +82,17 @@ class KPIService:
     # ==========================================
 
     @staticmethod
-    async def create_record(session: AsyncSession, data: KPIRecordCreate) -> KPIRecord:
+    async def create_record(session: AsyncSession, data: KPIRecordCreate, user: UserSession | None = None) -> KPIRecord:
         await KPIService._validate_record(session, data)
 
-        new_record = KPIRecord(**data.model_dump())
+        record_data = data.model_dump()
+        if user:
+            if user.source == "jwt":
+                record_data["created_by"] = user.user_id
+            elif user.source == "api_key":
+                record_data["api_key_id"] = user.api_key_id
+
+        new_record = KPIRecord(**record_data)
         session.add(new_record)
         await session.commit()
         await session.refresh(new_record)
@@ -145,11 +153,27 @@ class KPIService:
     # ==========================================
 
     @staticmethod
-    async def create_records_bulk(session: AsyncSession, data: KPIRecordBulkCreate) -> list[KPIRecord]:
+    async def create_records_bulk(
+        session: AsyncSession,
+        data: KPIRecordBulkCreate,
+        user: UserSession | None = None
+    ) -> list[KPIRecord]:
+        user_field = None
+        user_value = None
+        if user:
+            user_field = "created_by" if user.source == "jwt" else "api_key_id"
+            user_value = user.user_id if user.source == "jwt" else user.api_key_id
+
         for r in data.records:
             await KPIService._validate_record(session, r)
 
-        records = [KPIRecord(**r.model_dump()) for r in data.records]
+        records = []
+        for r in data.records:
+            record_data = r.model_dump()
+            if user_field:
+                record_data[user_field] = user_value
+            records.append(KPIRecord(**record_data))
+
         session.add_all(records)
         await session.commit()
 

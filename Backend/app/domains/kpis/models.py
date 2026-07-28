@@ -1,6 +1,6 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Optional, TYPE_CHECKING
-from sqlalchemy import String, Float, Boolean, Enum, ForeignKey, Text, Date
+from sqlalchemy import String, Float, Boolean, Enum, ForeignKey, Text, Date, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.base import Base
 import enum
@@ -9,6 +9,7 @@ from uuid import uuid4
 if TYPE_CHECKING:
     from app.domains.users.models import User
     from app.domains.projects.models import Project
+    from app.domains.api_keys.models import ApiKey
 
 
 class KpiType(str, enum.Enum):
@@ -47,12 +48,15 @@ class KPIRecord(Base):
     asset_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     is_missing: Mapped[bool] = mapped_column(Boolean, default=False)
     created_by: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    api_key_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("api_keys.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     kpi_definition: Mapped["KPIDefinition"] = relationship(back_populates="records")
     project: Mapped["Project"] = relationship(back_populates="kpi_records")
     creator: Mapped[Optional["User"]] = relationship(back_populates="kpi_records")
+    api_key: Mapped[Optional["ApiKey"]] = relationship()
 
 
 from app.domains.users.models import User  # noqa: E402, F811
 from app.domains.projects.models import Project  # noqa: E402, F811
+from app.domains.api_keys.models import ApiKey

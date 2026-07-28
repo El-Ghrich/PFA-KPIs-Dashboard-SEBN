@@ -9,6 +9,9 @@ from app.domains.kpis.schemas import (
     RecordPeriodEnum,
 )
 from app.domains.kpis.service import KPIService
+from app.api.dependencies import (
+    get_current_user, require_write_access, require_admin, UserSession
+)
 
 router = APIRouter()
 
@@ -20,14 +23,16 @@ router = APIRouter()
 @router.post("/definitions", response_model=KPIDefinitionResponse, status_code=status.HTTP_201_CREATED)
 async def create_kpi_definition(
     data: KPIDefinitionCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _: UserSession = Depends(require_admin)
 ):
     return await KPIService.create_definition(session=db, data=data)
 
 
 @router.get("/definitions", response_model=list[KPIDefinitionResponse])
 async def list_kpi_definitions(
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _: UserSession = Depends(get_current_user)
 ):
     return await KPIService.get_definitions(session=db)
 
@@ -39,15 +44,17 @@ async def list_kpi_definitions(
 @router.post("/records", response_model=KPIRecordResponse, status_code=status.HTTP_201_CREATED)
 async def create_kpi_record(
     data: KPIRecordCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    user: UserSession = Depends(require_write_access)
 ):
-    return await KPIService.create_record(session=db, data=data)
+    return await KPIService.create_record(session=db, data=data, user=user)
 
 
 @router.get("/records/{record_id}", response_model=KPIRecordResponse)
 async def get_kpi_record(
     record_id: str,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _: UserSession = Depends(get_current_user)
 ):
     return await KPIService.get_record(session=db, record_id=record_id)
 
@@ -56,7 +63,8 @@ async def get_kpi_record(
 async def update_kpi_record(
     record_id: str,
     data: KPIRecordUpdate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _: UserSession = Depends(require_write_access)
 ):
     return await KPIService.update_record(session=db, record_id=record_id, data=data)
 
@@ -64,7 +72,8 @@ async def update_kpi_record(
 @router.delete("/records/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_kpi_record(
     record_id: str,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _: UserSession = Depends(require_write_access)
 ):
     await KPIService.delete_record(session=db, record_id=record_id)
 
@@ -76,9 +85,10 @@ async def delete_kpi_record(
 @router.post("/records/bulk", response_model=KPIRecordBulkResponse, status_code=status.HTTP_201_CREATED)
 async def create_kpi_records_bulk(
     data: KPIRecordBulkCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    user: UserSession = Depends(require_write_access)
 ):
-    records = await KPIService.create_records_bulk(session=db, data=data)
+    records = await KPIService.create_records_bulk(session=db, data=data, user=user)
     return KPIRecordBulkResponse(records=records, total=len(records))
 
 
@@ -92,7 +102,8 @@ async def list_project_kpi_records(
     period: RecordPeriodEnum | None = Query(None, description="Filter by period (DAILY or WEEKLY)"),
     iso_year: int | None = Query(None, description="ISO year (e.g. 2026)"),
     iso_week: int | None = Query(None, description="ISO week number (1-53)"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _: UserSession = Depends(get_current_user)
 ):
     return await KPIService.get_project_records(
         session=db, project_id=project_id,

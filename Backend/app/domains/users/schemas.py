@@ -105,6 +105,15 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class TokenResponse(Token):
+    refresh_token: str
+    user: dict
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
 class TokenData(BaseModel):
     user_id: Optional[str] = None
     email: Optional[str] = None

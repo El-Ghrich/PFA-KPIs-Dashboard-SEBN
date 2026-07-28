@@ -8,9 +8,10 @@ from app.core.config import settings
 
 # All models
 from app.core.base import Base
-from app.domains.users.models import User 
+from app.domains.users.models import User, RefreshToken
 from app.domains.projects.models import Project
 from app.domains.kpis.models import KPIDefinition, KPIRecord
+from app.domains.api_keys.models import ApiKey
 
 from alembic import context
 

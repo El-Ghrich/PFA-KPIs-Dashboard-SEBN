@@ -4,10 +4,17 @@ from sqlalchemy import select
 from app.db.session import AsyncSessionLocal
 from app.domains.projects.models import Project
 from app.domains.kpis.models import KPIDefinition, KPIRecord, KpiType, RecordPeriod
+from app.domains.users.models import User, UserRole
+from app.core.security import hash_password
 
 
 PROJECT_NAME = "MEB21 HV"
 LOCATION = "Morocco"
+
+USERS = [
+    {"email": "admin@hcm.com", "full_name": "Admin User", "role": UserRole.ADMIN, "password": "admin123"},
+    {"email": "viewer@hcm.com", "full_name": "Viewer User", "role": UserRole.VIEWER, "password": "viewer123"},
+]
 
 DEFINITIONS = [
     {"name": "Output", "unit": "units", "kpi_type": KpiType.NUMERIC},
@@ -41,6 +48,23 @@ WEEKLY_DATA = [
 
 async def seed():
     async with AsyncSessionLocal() as session:
+        for u in USERS:
+            existing = await session.execute(
+                select(User).where(User.email == u["email"])
+            )
+            if existing.scalar_one_or_none():
+                print(f"User already exists: {u['email']}")
+            else:
+                user = User(
+                    email=u["email"],
+                    full_name=u["full_name"],
+                    role=u["role"],
+                    password_hash=hash_password(u["password"])
+                )
+                session.add(user)
+                await session.flush()
+                print(f"Created user: {u['email']} ({u['role'].value})")
+
         project = await session.execute(
             select(Project).where(Project.name == PROJECT_NAME)
         )
