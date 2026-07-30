@@ -1,7 +1,7 @@
 export default function AlertBanner() {
   return (
     <div
-      className="mb-6 p-4 rounded flex items-start gap-3"
+      className="mb-6 p-4 rounded-3xl shadow-sm flex items-start gap-3"
       style={{
         backgroundColor: '#fef3e2',
         borderLeft: '4px solid #e67e22',

@@ -8,7 +8,8 @@ const equipment = [
 
 export default function EquipmentStatus() {
   return (
-    <div className="dashboard-card bg-white rounded border border-border-card p-5 flex flex-col">
+    <div className="dashboard-card bg-white rounded-3xl border border-border-card shadow-[1px_1px_9px_0px_rgba(0,0,0,0.1)]
+ p-5 flex flex-col">
       <h3 className="text-[20px] font-semibold text-on-surface mb-4">Equipment Status</h3>
       <div className="flex-1 space-y-3">
         {equipment.map((eq) => (

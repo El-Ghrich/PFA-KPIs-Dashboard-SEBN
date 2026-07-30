@@ -3,15 +3,13 @@ interface KpiCardProps {
   value: string
   unit: string
   trend: { direction: 'up' | 'down'; text: string; color?: string }
-  chartColor: string
-  chartData?: string
-  limitLine?: boolean
 }
 
-export default function KpiCard({ label, value, unit, trend, chartColor, limitLine }: KpiCardProps) {
+export default function KpiCard({ label, value, unit, trend }: KpiCardProps) {
   const trendColor = trend.color || (trend.direction === 'up' ? '#00a472' : '#e67e22')
   return (
-    <div className="dashboard-card bg-white rounded border border-border-card p-5 flex flex-col gap-2">
+    <div className="dashboard-card bg-white rounded-3xl border border-border-card shadow-[1px_1px_9px_0px_rgba(0,0,0,0.1)]
+ p-5 flex flex-col gap-2">
       <p className="text-[12px] font-semibold uppercase tracking-wider text-on-surface-variant/60">{label}</p>
       <div className="flex items-end gap-2">
         <span className="text-[32px] font-bold text-on-surface tabular-nums leading-none">{value}</span>
@@ -30,13 +28,7 @@ export default function KpiCard({ label, value, unit, trend, chartColor, limitLi
           )}
           {trend.text}
         </span>
-        <span className="text-[11px] text-on-surface-variant/60">{trend.direction === 'up' ? 'vs. target' : 'approaching limit'}</span>
       </div>
-      <svg width="100%" height="32" className="mt-1" viewBox="0 0 200 32" preserveAspectRatio="none">
-        <polyline points="0,28 20,22 40,24 60,18 80,20 100,14 120,16 140,10 160,12 180,6 200,8"
-          fill="none" stroke={chartColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        {limitLine && <line x1="0" y1="26" x2="200" y2="26" stroke="#ba1a1a" strokeWidth="1" strokeDasharray="4,4" opacity="0.5"/>}
-      </svg>
     </div>
   )
 }

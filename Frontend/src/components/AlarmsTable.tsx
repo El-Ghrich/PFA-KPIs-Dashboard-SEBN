@@ -9,7 +9,7 @@ const alarms = [
 
 export default function AlarmsTable() {
   return (
-    <div className="dashboard-card bg-white rounded border border-border-card overflow-hidden">
+    <div className="dashboard-card bg-white rounded-3xl border border-border-card shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-border-card flex items-center justify-between">
         <div>
           <h3 className="text-[20px] font-semibold text-on-surface">Recent Alarms & Events</h3>
