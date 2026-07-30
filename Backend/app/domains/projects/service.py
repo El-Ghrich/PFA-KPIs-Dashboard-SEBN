@@ -35,17 +35,22 @@ class ProjectService:
     async def get_projects(
         session: AsyncSession, 
         page: int = 1, 
-        page_size: int = 10
+        page_size: int = 10,
+        location: str | None = None
     ) -> Tuple[Sequence[Project], int]:
-        """Retrieves a paginated list of projects and the total count."""
+        """Retrieves a paginated list of projects, optionally filtered by location."""
         
-        # 1. Get the total count of projects for the frontend pagination component
+        base_query = select(Project)
         count_query = select(func.count()).select_from(Project)
+
+        if location:
+            base_query = base_query.where(Project.location == location)
+            count_query = count_query.where(Project.location == location)
+
         total = await session.scalar(count_query) or 0
         
-        # 2. Fetch the actual records for the current page
         offset = (page - 1) * page_size
-        query = select(Project).offset(offset).limit(page_size)
+        query = base_query.offset(offset).limit(page_size)
         result = await session.execute(query)
         projects = result.scalars().all()
         

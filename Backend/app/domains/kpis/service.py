@@ -1,6 +1,7 @@
 from typing import Sequence
+from datetime import date
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, extract
 from sqlalchemy.orm import joinedload
 from fastapi import HTTPException, status
 
@@ -193,7 +194,8 @@ class KPIService:
         project_id: str,
         period: str | None = None,
         iso_year: int | None = None,
-        iso_week: int | None = None
+        iso_week: int | None = None,
+        kpi_id: str | None = None,
     ) -> Sequence[KPIRecord]:
         query = (
             select(KPIRecord)
@@ -204,8 +206,18 @@ class KPIService:
         if period:
             query = query.where(KPIRecord.period == period)
 
-        if iso_year is not None and iso_week is not None:
-            from datetime import date
+        if kpi_id:
+            query = query.where(KPIRecord.kpi_id == kpi_id)
+
+        if iso_year is not None:
+            query = query.where(extract('year', KPIRecord.record_date) == iso_year)
+
+        if iso_week is not None:
+            if iso_year is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="iso_week requires iso_year"
+                )
             week_start = date.fromisocalendar(iso_year, iso_week, 1)
             query = query.where(KPIRecord.record_date == week_start)
 

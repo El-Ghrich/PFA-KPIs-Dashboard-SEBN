@@ -29,17 +29,16 @@ async def create_project(
 async def list_projects(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
+    location: str | None = Query(None, description="Filter by location"),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Retrieve a paginated list of projects.
+    Retrieve a paginated list of projects, optionally filtered by location.
     """
-    # 1. Call the service to get raw models and the total count
     projects, total = await ProjectService.get_projects(
-        session=db, page=page, page_size=page_size
+        session=db, page=page, page_size=page_size, location=location
     )
     
-    # 2. Package them into the Pydantic List Schema
     return ProjectListResponse(
         items=projects,
         total=total,

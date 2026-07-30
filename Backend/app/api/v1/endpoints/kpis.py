@@ -102,10 +102,12 @@ async def list_project_kpi_records(
     period: RecordPeriodEnum | None = Query(None, description="Filter by period (DAILY or WEEKLY)"),
     iso_year: int | None = Query(None, description="ISO year (e.g. 2026)"),
     iso_week: int | None = Query(None, description="ISO week number (1-53)"),
+    kpi_id: str | None = Query(None, description="Filter by KPI definition ID"),
     db: AsyncSession = Depends(get_db),
     _: UserSession = Depends(get_current_user)
 ):
     return await KPIService.get_project_records(
         session=db, project_id=project_id,
-        period=period, iso_year=iso_year, iso_week=iso_week
+        period=period, iso_year=iso_year, iso_week=iso_week,
+        kpi_id=kpi_id,
     )
