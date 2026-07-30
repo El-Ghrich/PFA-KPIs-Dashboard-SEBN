@@ -26,6 +26,16 @@ function getCurrentISOWeek(): number {
   return Math.ceil(((d.getTime() - firstJan.getTime()) / 86400000 + firstJan.getDay() + 1) / 7)
 }
 
+function mondayOfISOWeek(year: number, week: number): Date {
+  const jan4 = new Date(year, 0, 4)
+  const dayOffset = (jan4.getDay() + 6) % 7
+  const jan4Monday = new Date(jan4)
+  jan4Monday.setDate(jan4.getDate() - dayOffset)
+  const monday = new Date(jan4Monday)
+  monday.setDate(monday.getDate() + (week - 1) * 7)
+  return monday
+}
+
 interface WeekDataPoint {
   weekLabel: string
   output: number | null
@@ -88,11 +98,11 @@ export default function Dashboard() {
     projectId: '',
     year: 2026,
     week: currentWeek,
-    compareWeek: currentWeek -1,
+    compareWeek: currentWeek - 1,
+    machine: 'All',
   })
   const [allWeekData, setAllWeekData] = useState<WeekDataPoint[]>([])
   const [kpiList, setKpiList] = useState<KpiDisplay[] | null>(null)
-  const [compareWeekLabel, setCompareWeekLabel] = useState<string | null>(null)
   const [compareDiffValues, setCompareDiffValues] = useState<(string | null)[]>([null, null, null, null])
 
   const isDesktop = useBreakpoint(768)
@@ -134,11 +144,6 @@ export default function Dashboard() {
           ? sorted.find(w => byWeekNum(w) === appliedFilters.compareWeek)
           : null
 
-        const cwLabel = appliedFilters.compareWeek
-          ? `vs CW${String(appliedFilters.compareWeek).padStart(2, '0')}`
-          : null
-        setCompareWeekLabel(cwLabel)
-
         if (selected) {
           const prev = compare ?? (sorted.length > 1 ? sorted[sorted.length - 2] : null)
 
@@ -171,7 +176,34 @@ export default function Dashboard() {
     load()
   }, [appliedFilters])
 
-  const chartWeekData = isDesktop ? allWeekData : allWeekData.slice(-4)
+  const chartWeekData = (() => {
+    const count = isDesktop ? 8 : 4
+    const selected = appliedFilters.week
+    const byWeekNum = (w: WeekDataPoint) => parseInt(w.weekLabel.replace('CW', ''))
+    const dataMap = new Map(allWeekData.map(w => [byWeekNum(w), w]))
+
+    const result: WeekDataPoint[] = []
+    for (let i = count - 1; i >= 0; i--) {
+      const wn = selected - i
+      if (wn < 1) continue
+      const label = `CW${String(wn).padStart(2, '0')}`
+      const existing = dataMap.get(wn)
+      result.push(existing ?? { weekLabel: label, output: null, scrapRate: null, oee: null, downtime: null })
+    }
+    return result
+  })()
+
+  const projectName = projects.find(p => p.id === appliedFilters.projectId)?.name || ''
+
+  const weekMonday = mondayOfISOWeek(appliedFilters.year, appliedFilters.week)
+  const weekSunday = new Date(weekMonday)
+  weekSunday.setDate(weekMonday.getDate() + 6)
+
+  const formatDateRange = (start: Date, end: Date) => {
+    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
+    const yearOpts: Intl.DateTimeFormatOptions = { year: 'numeric' }
+    return `${start.toLocaleDateString('en-US', opts)} - ${end.toLocaleDateString('en-US', opts)} ${end.toLocaleDateString('en-US', yearOpts)}`
+  }
 
   function formatTime(d: Date) {
     return d.toLocaleTimeString('en-US', { hour12: false })
@@ -187,67 +219,82 @@ export default function Dashboard() {
 
   return (
     <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
-      <Header
-        title="HCM-S Weekly Highlights"
-        subtitle="Overview of performance and key highlights for the selected week and project"
-        currentTime={formatTime(now)}
-        currentDate={formatDate(now)}
-      />
-
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8" style={{ maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
-        <FilterBar
-          projects={projects}
-          defaultFilters={appliedFilters}
-          onApply={setAppliedFilters}
-        />
-
-        <div className="flex items-center gap-3 flex-wrap mb-6">
-          <WeekNavigator
-            week={appliedFilters.week}
-            year={appliedFilters.year}
-            onChange={(w, y) => setAppliedFilters(prev => ({ ...prev, week: w, year: y }))}
-            showToday
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="max-w-[1440px] mx-auto w-full px-8 py-8">
+          <Header
+            title="HCM-S Weekly Highlights"
+            subtitle="Overview of performance and key highlights for the selected week and project"
+            currentTime={formatTime(now)}
+            currentDate={formatDate(now)}
           />
-          <WeekNavigator
-            week={appliedFilters.compareWeek ?? getCurrentISOWeek() - 1}
-            year={appliedFilters.year}
-            onChange={(w, y) => setAppliedFilters(prev => ({ ...prev, compareWeek: w, year: y }))}
-            showToday={false}
-            label="compare to"
-          />
-        </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center h-64 text-on-surface-variant text-[15px] font-medium">
-            Loading dashboard data...
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              {kpiList && kpiList.map((kpi, i) => (
-                <KpiCard
-                  key={labels[i]}
-                  label={labels[i]}
-                  value={kpi.value}
-                  unit={kpi.unit}
-                  diffValue={compareDiffValues[i]}
-                  compareWeekLabel={compareWeekLabel}
-                  compareDirection={kpi.diffDirection}
-                />
-              ))}
+          <FilterBar
+            projects={projects}
+            defaultFilters={appliedFilters}
+            onApply={setAppliedFilters}
+            onWeekChange={(w, y) => setAppliedFilters(prev => ({ ...prev, week: w, year: y }))}
+          />
+
+          <div className="flex items-center justify-between mb-4 ml-1">
+            <div className="text-[15px] text-on-surface-variant/70 flex items-center gap-0">
+              <span className="font-semibold text-on-surface">{projectName}</span>
+              <span className="mx-1.5 text-on-surface-variant/30">-</span>
+              <span>{appliedFilters.machine}</span>
+              <span className="mx-1.5 text-on-surface-variant/30">-</span>
+              <span>{formatDateRange(weekMonday, weekSunday)}</span>
             </div>
-
-            <div className="mb-6">
-              <ProductionChart
-                weekLabels={chartWeekData.map(w => w.weekLabel)}
-                outputData={chartWeekData.map(w => w.output)}
-                oeeData={chartWeekData.map(w => w.oee)}
+            <div className="flex items-center gap-3">
+              <p className="mx-1.5 text-[15px] text-on-surface-variant/90">compare with:</p>
+              
+              <WeekNavigator
+                week={appliedFilters.compareWeek ?? currentWeek - 1}
+                year={appliedFilters.year}
+                onChange={(w, y) => setAppliedFilters(prev => ({ ...prev, compareWeek: w, year: y }))}
+                showToday={true}
+                compare={true}
+                mainWeek={appliedFilters.week}
+                label=""
               />
+              <button className="px-4 py-[9px] rounded-lg border border-border-card text-[13px] font-semibold text-on-surface-variant hover:bg-surface-container transition-colors duration-200 flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+                Export
+              </button>
             </div>
+          </div>
 
-            <AlarmsTable />
-          </>
-        )}
+          {loading ? (
+            <div className="flex items-center justify-center h-64 text-on-surface-variant text-[14px] font-medium">
+              Loading dashboard data...
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+                {kpiList && kpiList.map((kpi, i) => (
+                  <KpiCard
+                    key={labels[i]}
+                    label={labels[i]}
+                    value={kpi.value}
+                    unit={kpi.unit}
+                    diffValue={compareDiffValues[i]}
+                    compareDirection={kpi.diffDirection}
+                  />
+                ))}
+              </div>
+
+              <div className="mb-6">
+                <ProductionChart
+                  weekLabels={chartWeekData.map(w => w.weekLabel)}
+                  outputData={chartWeekData.map(w => w.output)}
+                  oeeData={chartWeekData.map(w => w.oee)}
+                />
+              </div>
+
+              <AlarmsTable />
+            </>
+          )}
+        </div>
       </div>
     </main>
   )
