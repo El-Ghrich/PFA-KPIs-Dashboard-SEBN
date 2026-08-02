@@ -20,11 +20,22 @@ export interface KPIRecord {
   record_date: string
   period: 'DAILY' | 'WEEKLY'
   numeric_value: number | null
-  text_value: string | null
   is_missing: boolean
   created_at: string
   created_by: string | null
   kpi_definition: KPIDefinition | null
+}
+
+export interface Highlight {
+  id: string
+  project_id: string
+  record_date: string
+  period: 'DAILY' | 'WEEKLY'
+  value: string
+  status: 'GOOD' | 'BAD'
+  created_at: string
+  created_by: string | null
+  api_key_id: string | null
 }
 
 export interface User {

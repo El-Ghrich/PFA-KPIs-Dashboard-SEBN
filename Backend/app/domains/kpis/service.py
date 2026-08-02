@@ -69,11 +69,6 @@ class KPIService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"KPI '{kpi_def.name}' expects a numeric value."
                 )
-            if kpi_def.kpi_type == KpiType.TEXT and data.text_value is None:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"KPI '{kpi_def.name}' expects a text value."
-                )
 
         return project, kpi_def
 

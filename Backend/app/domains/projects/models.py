@@ -8,6 +8,7 @@ from uuid import uuid4
 
 if TYPE_CHECKING:
     from app.domains.kpis.models import KPIRecord
+    from app.domains.highlights.models import Highlight
     from app.domains.users.models import User
 
 
@@ -71,6 +72,11 @@ class Project(Base):
         cascade="all, delete-orphan"
     )
 
+    highlights: Mapped[list["Highlight"]] = relationship(
+        back_populates="project",
+        cascade="all, delete-orphan"
+    )
+
     creator: Mapped[Optional["User"]] = relationship(back_populates="projects")
 
     def __repr__(self) -> str:
@@ -78,4 +84,5 @@ class Project(Base):
 
 
 from app.domains.kpis.models import KPIRecord  # noqa: E402, F811
+from app.domains.highlights.models import Highlight  # noqa: E402, F811
 from app.domains.users.models import User  # noqa: E402, F811

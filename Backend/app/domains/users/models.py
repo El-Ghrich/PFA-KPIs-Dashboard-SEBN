@@ -8,6 +8,7 @@ from uuid import uuid4
 
 if TYPE_CHECKING:
     from app.domains.kpis.models import KPIRecord
+    from app.domains.highlights.models import Highlight
     from app.domains.projects.models import Project
     from app.domains.api_keys.models import ApiKey
 
@@ -65,6 +66,7 @@ class User(Base):
     api_keys: Mapped[list["ApiKey"]] = relationship(back_populates="creator")
     projects: Mapped[list["Project"]] = relationship(back_populates="creator")
     kpi_records: Mapped[list["KPIRecord"]] = relationship(back_populates="creator")
+    highlights: Mapped[list["Highlight"]] = relationship(back_populates="creator")
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, role={self.role})>"
@@ -88,3 +90,4 @@ User.refresh_tokens = relationship("RefreshToken", back_populates="user", cascad
 
 from app.domains.projects.models import Project  # noqa: E402, F811
 from app.domains.kpis.models import KPIRecord  # noqa: E402, F811
+from app.domains.highlights.models import Highlight  # noqa: E402, F811

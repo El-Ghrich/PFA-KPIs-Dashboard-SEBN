@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict
 from datetime import date, datetime
 from typing import Optional
 from enum import Enum
@@ -45,7 +45,6 @@ class KPIRecordBase(BaseModel):
     record_date: date
     period: RecordPeriodEnum
     numeric_value: Optional[float] = None
-    text_value: Optional[str] = None
     asset_url: Optional[str] = None
     is_missing: bool = False
 
@@ -56,7 +55,6 @@ class KPIRecordUpdate(BaseModel):
     record_date: Optional[date] = None
     period: Optional[RecordPeriodEnum] = None
     numeric_value: Optional[float] = None
-    text_value: Optional[str] = None
     asset_url: Optional[str] = None
     is_missing: Optional[bool] = None
 
@@ -74,14 +72,3 @@ class KPIRecordBulkCreate(BaseModel):
 class KPIRecordBulkResponse(BaseModel):
     records: list[KPIRecordResponse]
     total: int
-
-
-# ==========================================
-# HIGHLIGHT-SPECIFIC SCHEMA
-# ==========================================
-
-class HighlightCreate(BaseModel):
-    project_id: str
-    record_date: date
-    text_value: str = Field(..., min_length=1, description="The highlight/comment text")
-    created_by: Optional[str] = None

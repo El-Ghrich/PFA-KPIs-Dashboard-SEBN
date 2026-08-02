@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 from typing import Optional, TYPE_CHECKING
-from sqlalchemy import String, Float, Boolean, Enum, ForeignKey, Text, Date, DateTime
+from sqlalchemy import String, Float, Boolean, Enum, ForeignKey, Date, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.base import Base
 import enum
@@ -43,7 +43,6 @@ class KPIRecord(Base):
     period: Mapped[RecordPeriod] = mapped_column(Enum(RecordPeriod), nullable=False)
 
     numeric_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    text_value: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     asset_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     is_missing: Mapped[bool] = mapped_column(Boolean, default=False)

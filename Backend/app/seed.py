@@ -4,8 +4,38 @@ from sqlalchemy import select
 from app.db.session import AsyncSessionLocal
 from app.domains.projects.models import Project, ProjectStatus
 from app.domains.kpis.models import KPIDefinition, KPIRecord, KpiType, RecordPeriod
+from app.domains.highlights.models import Highlight, HighlightStatus, HighlightPeriod
 from app.domains.users.models import User, UserRole
 from app.core.security import hash_password
+
+
+DEFINITIONS = [
+    {"name": "Output", "unit": "units", "kpi_type": KpiType.NUMERIC},
+    {"name": "Scrap Rate", "unit": "%", "kpi_type": KpiType.NUMERIC},
+    {"name": "OEE", "unit": "%", "kpi_type": KpiType.NUMERIC},
+    {"name": "Downtime", "unit": "hours", "kpi_type": KpiType.NUMERIC},
+]
+
+HIGHLIGHT_STATUS = {
+    "Slight dip due to material change": HighlightStatus.BAD,
+    "Raw material quality issue": HighlightStatus.BAD,
+    "High scrap rate due to raw material defect": HighlightStatus.BAD,
+    "Tooling wear detected, replacement scheduled": HighlightStatus.BAD,
+    "Shift handover gaps identified": HighlightStatus.BAD,
+    "Unexpected line stoppage": HighlightStatus.BAD,
+    "Conveyor belt fault caused delay": HighlightStatus.BAD,
+    "Staff shortage impact": HighlightStatus.BAD,
+    "New line commissioning challenges": HighlightStatus.BAD,
+    "Sensor calibration issues": HighlightStatus.BAD,
+    "Material shortage affected output": HighlightStatus.BAD,
+    "Supply chain disruption": HighlightStatus.BAD,
+    "Preventive maintenance performed": HighlightStatus.BAD,
+    "Cooling system issue resolved": HighlightStatus.BAD,
+    "Quality check frequency increased": HighlightStatus.BAD,
+    "Process parameter tuning underway": HighlightStatus.BAD,
+    "New operator training ongoing": HighlightStatus.BAD,
+    "Minor process adjustment completed": HighlightStatus.BAD,
+}
 
 
 PROJECTS = [
@@ -27,7 +57,6 @@ DEFINITIONS = [
     {"name": "Scrap Rate", "unit": "%", "kpi_type": KpiType.NUMERIC},
     {"name": "OEE", "unit": "%", "kpi_type": KpiType.NUMERIC},
     {"name": "Downtime", "unit": "hours", "kpi_type": KpiType.NUMERIC},
-    {"name": "Highlight", "unit": "", "kpi_type": KpiType.TEXT},
 ]
 
 WEEKS = [
@@ -165,20 +194,9 @@ async def seed():
                         KPIRecord.period == RecordPeriod.WEEKLY,
                     )
                 )
-                if existing_record.scalar_one_or_none():
-                    continue
-
-                records = []
-                for def_name, definition in def_map.items():
-                    if def_name == "Highlight":
-                        record = KPIRecord(
-                            project_id=project.id,
-                            kpi_id=definition.id,
-                            record_date=week["monday"],
-                            period=RecordPeriod.WEEKLY,
-                            text_value=data[def_name],
-                        )
-                    else:
+                if not existing_record.scalar_one_or_none():
+                    records = []
+                    for def_name, definition in def_map.items():
                         record = KPIRecord(
                             project_id=project.id,
                             kpi_id=definition.id,
@@ -186,9 +204,32 @@ async def seed():
                             period=RecordPeriod.WEEKLY,
                             numeric_value=float(data[def_name]),
                         )
-                    records.append(record)
+                        records.append(record)
 
-                session.add_all(records)
+                    session.add_all(records)
+                    await session.flush()
+
+                existing_highlight = await session.execute(
+                    select(Highlight).where(
+                        Highlight.project_id == project.id,
+                        Highlight.record_date == week["monday"],
+                        Highlight.period == HighlightPeriod.WEEKLY,
+                    )
+                )
+                highlight = existing_highlight.scalar_one_or_none()
+                status = HIGHLIGHT_STATUS.get(data["Highlight"], HighlightStatus.GOOD)
+                if highlight:
+                    highlight.value = data["Highlight"]
+                    highlight.status = status
+                else:
+                    session.add(Highlight(
+                        project_id=project.id,
+                        record_date=week["monday"],
+                        period=HighlightPeriod.WEEKLY,
+                        value=data["Highlight"],
+                        status=status,
+                    ))
+
                 await session.flush()
 
             print(f"Seeded {len(WEEKS)} weeks for {proj_info['name']}")

@@ -3,12 +3,14 @@ import Header from '../components/Header'
 import KpiCard from '../components/KpiCard'
 import ProductionChart from '../components/ProductionChart'
 import AlarmsTable from '../components/AlarmsTable'
+import HighlightsPanel from '../components/HighlightsPanel'
 import FilterBar from '../components/FilterBar'
 import WeekNavigator from '../components/WeekNavigator'
 import type { FilterState } from '../components/FilterBar'
 import { projectsApi } from '../api/projects'
 import { kpisApi } from '../api/kpis'
-import type { Project, KPIRecord } from '../types'
+import { highlightsApi } from '../api/highlights'
+import type { Project, KPIRecord, Highlight } from '../types'
 
 function getISOWeek(dateStr: string): number {
   const date = new Date(dateStr)
@@ -104,6 +106,7 @@ export default function Dashboard() {
   const [allWeekData, setAllWeekData] = useState<WeekDataPoint[]>([])
   const [kpiList, setKpiList] = useState<KpiDisplay[] | null>(null)
   const [compareDiffValues, setCompareDiffValues] = useState<(string | null)[]>([null, null, null, null])
+  const [highlights, setHighlights] = useState<Highlight[]>([])
 
   const isDesktop = useBreakpoint(768)
 
@@ -127,11 +130,15 @@ export default function Dashboard() {
     async function load() {
       setLoading(true)
       try {
-        const records = await kpisApi.getRecords(
-          appliedFilters.projectId,
-          'WEEKLY',
-          appliedFilters.year,
-        )
+        const [records, hl] = await Promise.all([
+          kpisApi.getRecords(
+            appliedFilters.projectId,
+            'WEEKLY',
+            appliedFilters.year,
+          ),
+          highlightsApi.list(appliedFilters.projectId, 'WEEKLY', appliedFilters.year),
+        ])
+        setHighlights(hl)
         const sorted = groupRecords(records)
         setAllWeekData(sorted)
 
@@ -192,6 +199,12 @@ export default function Dashboard() {
     }
     return result
   })()
+
+  const chartWeekSet = new Set(chartWeekData.map(w => parseInt(w.weekLabel.replace('CW', ''))))
+  const byDate = (a: Highlight, b: Highlight) => a.record_date.localeCompare(b.record_date)
+  const inChartWeek = (h: Highlight) => chartWeekSet.has(getISOWeek(h.record_date))
+  const goodHighlights = highlights.filter(h => h.status === 'GOOD' && inChartWeek(h)).sort(byDate)
+  const badHighlights = highlights.filter(h => h.status === 'BAD' && inChartWeek(h)).sort(byDate)
 
   const projectName = projects.find(p => p.id === appliedFilters.projectId)?.name || ''
 
@@ -283,12 +296,15 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              <div className="mb-6">
-                <ProductionChart
-                  weekLabels={chartWeekData.map(w => w.weekLabel)}
-                  outputData={chartWeekData.map(w => w.output)}
-                  oeeData={chartWeekData.map(w => w.oee)}
-                />
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+                <div className="lg:col-span-2 min-w-0">
+                  <ProductionChart
+                    weekLabels={chartWeekData.map(w => w.weekLabel)}
+                    outputData={chartWeekData.map(w => w.output)}
+                    oeeData={chartWeekData.map(w => w.oee)}
+                  />
+                </div>
+                <HighlightsPanel good={goodHighlights} bad={badHighlights} />
               </div>
 
               <AlarmsTable />
