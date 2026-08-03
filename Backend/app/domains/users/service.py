@@ -54,7 +54,6 @@ class UserService:
 
         token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
         expire = datetime.now(timezone.utc) + timedelta(days=7)
-        print(expire)
         session.add(RefreshToken(
             user_id=user.id,
             token_hash=token_hash,

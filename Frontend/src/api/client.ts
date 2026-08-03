@@ -12,6 +12,15 @@ const client = axios.create(baseConfig)
 // re-enters the 401 interceptor (which would cause infinite recursion).
 const refreshClient = axios.create(baseConfig)
 
+// Requests to these endpoints must never trigger the token-refresh flow: a
+// failed login/signup is a credential error, not an expired token.
+const AUTH_PATHS = ['/auth/login', '/auth/signup', '/auth/refresh']
+
+function isAuthPath(url?: string): boolean {
+  if (!url) return false
+  return AUTH_PATHS.some((p) => url.startsWith(p))
+}
+
 client.interceptors.request.use((config) => {
   const token = tokenStorage.getAccessToken()
   if (token) {
@@ -24,7 +33,7 @@ client.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config
-    if (error.response?.status === 401 && !original._retry) {
+    if (original && error.response?.status === 401 && !original._retry && !isAuthPath(original.url)) {
       original._retry = true
       const refreshToken = tokenStorage.getRefreshToken()
       if (refreshToken) {
