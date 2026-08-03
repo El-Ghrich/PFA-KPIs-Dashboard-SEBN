@@ -52,3 +52,19 @@ export interface AuthResponse {
   refresh_token: string
   user: User
 }
+
+export interface Paginated<T> {
+  items: T[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface FilterState {
+  location: string
+  projectId: string
+  year: number
+  week: number
+  compareWeek: number | null
+  machine: string
+}

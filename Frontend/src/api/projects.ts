@@ -1,15 +1,18 @@
 import client from './client'
-import type { Project } from '../types'
+import type { Paginated, Project } from '../types'
 
 export const projectsApi = {
   list: (page = 1, pageSize = 10, location?: string) => {
-    let url = `/projects?page=${page}&page_size=${pageSize}`
-    if (location && location !== 'All') url += `&location=${encodeURIComponent(location)}`
-    return client.get<{ items: Project[]; total: number; page: number; page_size: number }>(url).then((r) => r.data)
+    const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+    if (location && location !== 'All') params.set('location', location)
+    return client.get<Paginated<Project>>(`/projects?${params}`).then((r) => r.data)
   },
 
-  get: (id: string, includeKpis = false) =>
-    client.get(`/projects/${id}${includeKpis ? '?include_kpis=true' : ''}`).then((r) => r.data),
+  get: (id: string, includeKpis = false) => {
+    const params = new URLSearchParams()
+    if (includeKpis) params.set('include_kpis', 'true')
+    return client.get<Project>(`/projects/${id}${params.size ? `?${params}` : ''}`).then((r) => r.data)
+  },
 
   create: (data: { name: string; status?: string; location?: string }) =>
     client.post<Project>('/projects', data).then((r) => r.data),

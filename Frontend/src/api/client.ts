@@ -1,12 +1,19 @@
 import axios from 'axios'
+import { tokenStorage } from '../lib/tokenStorage'
 
-const client = axios.create({
+const baseConfig = {
   baseURL: '/api/v1',
   headers: { 'Content-Type': 'application/json' },
-})
+}
+
+const client = axios.create(baseConfig)
+
+// Bare instance without auth interceptors so the token-refresh request never
+// re-enters the 401 interceptor (which would cause infinite recursion).
+const refreshClient = axios.create(baseConfig)
 
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token')
+  const token = tokenStorage.getAccessToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -19,22 +26,23 @@ client.interceptors.response.use(
     const original = error.config
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true
-      const refresh = localStorage.getItem('refresh_token')
-      if (refresh) {
+      const refreshToken = tokenStorage.getRefreshToken()
+      if (refreshToken) {
         try {
-          const { data } = await axios.post('/api/v1/auth/refresh', { refresh_token: refresh })
-          localStorage.setItem('access_token', data.access_token)
+          const { data } = await refreshClient.post<{ access_token: string }>('/auth/refresh', {
+            refresh_token: refreshToken,
+          })
+          tokenStorage.setAccessToken(data.access_token)
           original.headers.Authorization = `Bearer ${data.access_token}`
           return client(original)
         } catch {
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('refresh_token')
+          tokenStorage.clearTokens()
           window.location.href = '/login'
         }
       }
     }
     return Promise.reject(error)
-  }
+  },
 )
 
 export default client

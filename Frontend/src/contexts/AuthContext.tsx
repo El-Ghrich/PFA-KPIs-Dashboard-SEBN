@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { authApi } from '../api/auth'
+import { tokenStorage } from '../lib/tokenStorage'
 import type { User } from '../types'
 
 interface AuthContextType {
@@ -16,11 +17,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
+    const token = tokenStorage.getAccessToken()
     if (token) {
       authApi.me()
         .then(setUser)
-        .catch(() => localStorage.removeItem('access_token'))
+        .catch(() => tokenStorage.clearTokens())
         .finally(() => setLoading(false))
     } else {
       setLoading(false)
@@ -29,14 +30,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const res = await authApi.login(email, password)
-    localStorage.setItem('access_token', res.access_token)
-    localStorage.setItem('refresh_token', res.refresh_token)
+    tokenStorage.setTokens(res.access_token, res.refresh_token)
     setUser(res.user)
   }
 
   const logout = () => {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
+    tokenStorage.clearTokens()
     setUser(null)
   }
 

@@ -1,3 +1,5 @@
+import { Card } from './ui/Card'
+
 interface KpiCardProps {
   label: string
   value: string
@@ -11,7 +13,7 @@ export default function KpiCard({ label, value, unit, diffValue, compareDirectio
   const color = isGood ? '#22c55e' : '#ef4444'
 
   return (
-    <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.06)] p-5 flex flex-col gap-2 relative overflow-hidden transition-shadow duration-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
+    <Card className="flex flex-col gap-2 relative overflow-hidden hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
       <div className="flex items-start justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/70">{label}</p>
         {diffValue != null && (
@@ -35,6 +37,6 @@ export default function KpiCard({ label, value, unit, diffValue, compareDirectio
         <span className="text-[28px] font-bold text-on-surface tabular-nums leading-none">{value}</span>
         <span className="text-[13px] font-medium text-on-surface-variant/60">{unit}</span>
       </div>
-    </div>
+    </Card>
   )
 }

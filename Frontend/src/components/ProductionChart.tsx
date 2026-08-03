@@ -1,4 +1,4 @@
-import { Bar } from 'react-chartjs-2'
+import { Chart } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -9,9 +9,21 @@ import {
   Tooltip,
   Legend,
   Filler,
+  type ChartData,
+  type ChartDataset,
+  type ChartOptions,
+  type Plugin,
+  type ScriptableContext,
+  type TooltipItem,
 } from 'chart.js'
+import { Card } from './ui/Card'
+import { CHART_TARGET } from '../lib/constants'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend, Filler)
+
+type MixedChart = 'bar' | 'line'
+type MixedData = ChartData<MixedChart, (number | null)[], string>
+type MixedOptions = ChartOptions<MixedChart>
 
 interface ProductionChartProps {
   weekLabels: string[]
@@ -29,16 +41,16 @@ const COLORS = {
 }
 
 export default function ProductionChart({ weekLabels, outputData, oeeData }: ProductionChartProps) {
-  const targetData = outputData.map(() => 9000)
+  const targetData = outputData.map(() => CHART_TARGET)
 
-  const data = {
+  const data: MixedData = {
     labels: weekLabels,
     datasets: [
       {
         label: 'Output (Sets)',
         data: outputData,
-        type: 'bar' as const,
-        backgroundColor: (ctx: any) => {
+        type: 'bar',
+        backgroundColor: (ctx: ScriptableContext<'bar'>) => {
           if (!ctx.chart.chartArea) return `${COLORS.bar}cc`
           const g = ctx.chart.ctx.createLinearGradient(0, ctx.chart.chartArea.top, 0, ctx.chart.chartArea.bottom)
           g.addColorStop(0, COLORS.bar)
@@ -50,14 +62,14 @@ export default function ProductionChart({ weekLabels, outputData, oeeData }: Pro
         borderRadius: 4,
         barPercentage: 0.5,
         order: 2,
-        yAxisID: 'y' as const,
+        yAxisID: 'y',
       },
       {
         label: 'Target (Sets)',
         data: targetData,
-        type: 'line' as const,
+        type: 'line',
         borderColor: COLORS.target,
-        backgroundColor: (ctx: any) => {
+        backgroundColor: (ctx: ScriptableContext<'line'>) => {
           if (!ctx.chart.chartArea) return `${COLORS.target}08`
           const g = ctx.chart.ctx.createLinearGradient(0, ctx.chart.chartArea.top, 0, ctx.chart.chartArea.bottom)
           g.addColorStop(0, `${COLORS.target}18`)
@@ -65,7 +77,7 @@ export default function ProductionChart({ weekLabels, outputData, oeeData }: Pro
           return g
         },
         borderWidth: 2,
-        borderDash: [6, 4] as number[],
+        borderDash: [6, 4],
         pointBackgroundColor: COLORS.target,
         pointBorderColor: COLORS.target,
         pointRadius: 3,
@@ -73,14 +85,14 @@ export default function ProductionChart({ weekLabels, outputData, oeeData }: Pro
         tension: 0,
         fill: true,
         order: 1,
-        yAxisID: 'y' as const,
+        yAxisID: 'y',
       },
       {
         label: 'OEE (%)',
         data: oeeData,
-        type: 'line' as const,
+        type: 'line',
         borderColor: COLORS.oee,
-        backgroundColor: (ctx: any) => {
+        backgroundColor: (ctx: ScriptableContext<'line'>) => {
           if (!ctx.chart.chartArea) return `${COLORS.oee}15`
           const g = ctx.chart.ctx.createLinearGradient(0, ctx.chart.chartArea.top, 0, ctx.chart.chartArea.bottom)
           g.addColorStop(0, `${COLORS.oee}30`)
@@ -92,26 +104,26 @@ export default function ProductionChart({ weekLabels, outputData, oeeData }: Pro
         pointBorderColor: COLORS.oee,
         pointRadius: 3,
         pointHoverRadius: 5,
-        pointStyle: 'rectRot' as const,
+        pointStyle: 'rectRot',
         tension: 0.3,
         fill: true,
         order: 0,
-        yAxisID: 'y1' as const,
+        yAxisID: 'y1',
       },
     ],
   }
 
-  const options = {
+  const options: MixedOptions = {
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
-      mode: 'index' as const,
+      mode: 'index',
       intersect: false,
     },
     plugins: {
       legend: {
-        position: 'top' as const,
-        align: 'start' as const,
+        position: 'top',
+        align: 'start',
         labels: {
           font: { size: 11, family: 'Inter' },
           padding: 16,
@@ -131,15 +143,15 @@ export default function ProductionChart({ weekLabels, outputData, oeeData }: Pro
         borderWidth: 1,
         boxPadding: 4,
         callbacks: {
-          label: function (context: any) {
+          label: (context: TooltipItem<MixedChart>) => {
             const label = context.dataset.label || ''
-            const value = context.raw
+            const value = context.raw as number | null
             if (context.dataset.yAxisID === 'y') {
-               if (value === null || value === undefined || isNaN(value)) {
-                  return `${label}: No data`
-                }
+              if (value === null || value === undefined || isNaN(value)) {
+                return `${label}: No data`
+              }
             }
-            return label + ': ' + value + '%'
+            return `${label}: ${value}%`
           },
         },
       },
@@ -147,17 +159,15 @@ export default function ProductionChart({ weekLabels, outputData, oeeData }: Pro
     scales: {
       x: {
         grid: { display: false },
-        ticks: { font: { size: 11, family: 'Inter', weight: '600' as const }, color: COLORS.text },
+        ticks: { font: { size: 11, family: 'Inter', weight: 600 }, color: COLORS.text },
       },
       y: {
-        position: 'left' as const,
+        position: 'left',
         min: 0,
         max: 11000,
         ticks: {
           stepSize: 2000,
-          callback: function (value: any) {
-            return (value / 1000).toFixed(0) + 'k'
-          },
+          callback: (value: number | string) => (Number(value) / 1000).toFixed(0) + 'k',
           font: { size: 10, family: 'Inter' },
           color: COLORS.text,
         },
@@ -169,18 +179,16 @@ export default function ProductionChart({ weekLabels, outputData, oeeData }: Pro
           display: true,
           text: 'Output / Target',
           color: COLORS.text,
-          font: { size: 10, family: 'Inter', weight: '600' as const },
+          font: { size: 10, family: 'Inter', weight: 600 },
         },
       },
       y1: {
-        position: 'right' as const,
+        position: 'right',
         min: 40,
         max: 100,
         ticks: {
           stepSize: 10,
-          callback: function (value: any) {
-            return value + '%'
-          },
+          callback: (value: number | string) => `${value}%`,
           font: { size: 10, family: 'Inter' },
           color: COLORS.text,
         },
@@ -189,21 +197,23 @@ export default function ProductionChart({ weekLabels, outputData, oeeData }: Pro
           display: true,
           text: 'OEE',
           color: COLORS.text,
-          font: { size: 10, family: 'Inter', weight: '600' as const },
+          font: { size: 10, family: 'Inter', weight: 600 },
         },
       },
     },
   }
 
-  const labelPlugin = {
+  const labelPlugin: Plugin<MixedChart> = {
     id: 'customLabels',
-    afterDraw: function (chart: any) {
+    afterDraw(chart) {
       const ctx = chart.ctx
-      chart.data.datasets.forEach(function (dataset: any, i: number) {
+      const datasets = chart.data.datasets as ChartDataset<MixedChart, (number | null)[]>[]
+      datasets.forEach((dataset, i) => {
         const meta = chart.getDatasetMeta(i)
+        const values = dataset.data ?? []
         if (dataset.type === 'bar') {
-          meta.data.forEach(function (bar: any, index: number) {
-            const value = dataset.data[index]
+          meta.data.forEach((bar, index) => {
+            const value = values[index]
             if (value === null || value === undefined) return
             ctx.fillStyle = '#0f172a'
             ctx.font = '600 11px Inter, Arial'
@@ -213,8 +223,8 @@ export default function ProductionChart({ weekLabels, outputData, oeeData }: Pro
           })
         }
         if (dataset.label === 'OEE (%)') {
-          meta.data.forEach(function (point: any, index: number) {
-            const value = dataset.data[index]
+          meta.data.forEach((point, index) => {
+            const value = values[index]
             if (value === null || value === undefined) return
             ctx.fillStyle = COLORS.oee
             ctx.font = '600 11px Inter, Arial'
@@ -230,7 +240,7 @@ export default function ProductionChart({ weekLabels, outputData, oeeData }: Pro
   const mobile = weekLabels.length <= 4
 
   return (
-    <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.06)] p-5 flex flex-col transition-shadow duration-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
+    <Card className="flex flex-col hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[16px] font-semibold text-on-surface">Last 8 Week Trend</h3>
         <div className="flex items-center gap-2">
@@ -243,8 +253,13 @@ export default function ProductionChart({ weekLabels, outputData, oeeData }: Pro
         </div>
       </div>
       <div className="relative" style={{ minHeight: mobile ? '260px' : '300px' }}>
-        <Bar options={options} data={data} plugins={[labelPlugin]} />
+        <Chart<MixedChart, (number | null)[], string>
+          type="bar"
+          options={options}
+          data={data}
+          plugins={[labelPlugin]}
+        />
       </div>
-    </div>
+    </Card>
   )
 }

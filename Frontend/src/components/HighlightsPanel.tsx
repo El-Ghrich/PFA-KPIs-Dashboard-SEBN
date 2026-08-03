@@ -1,21 +1,11 @@
 import type { ReactNode } from 'react'
+import { weekLabel } from '../lib/isoDate'
+import { Card } from './ui/Card'
 import type { Highlight } from '../types'
 
 interface HighlightsPanelProps {
   good: Highlight[]
   bad: Highlight[]
-}
-
-function getISOWeek(dateStr: string): number {
-  const date = new Date(dateStr)
-  const d = new Date(date)
-  d.setDate(d.getDate() + 3 - ((date.getDay() + 6) % 7))
-  const firstJan = new Date(d.getFullYear(), 0, 1)
-  return Math.ceil(((d.getTime() - firstJan.getTime()) / 86400000 + firstJan.getDay() + 1) / 7)
-}
-
-function weekLabel(dateStr: string): string {
-  return `CW${String(getISOWeek(dateStr)).padStart(2, '0')}`
 }
 
 function HighlightCard({
@@ -34,7 +24,7 @@ function HighlightCard({
   emptyText: string
 }) {
   return (
-    <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.06)] p-5 flex-1 min-h-0 flex flex-col transition-shadow duration-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
+    <Card className="flex-1 min-h-0 flex flex-col hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="flex items-center justify-center w-7 h-7 rounded-lg" style={{ backgroundColor: accentBg, color: accent }}>
@@ -60,7 +50,7 @@ function HighlightCard({
           ))}
         </ul>
       )}
-    </div>
+    </Card>
   )
 }
 
