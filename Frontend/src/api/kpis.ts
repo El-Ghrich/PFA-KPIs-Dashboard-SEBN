@@ -1,6 +1,24 @@
 import client from './client'
 import type { KPIDefinition, KPIRecord } from '../types'
 
+export interface KPIRecordBulkCreateItem {
+  project_id: string
+  kpi_id: string
+  record_date: string
+  period: 'DAILY' | 'WEEKLY'
+  numeric_value: number | null
+  asset_url?: string | null
+  is_missing?: boolean
+}
+
+export interface KPIRecordPatch {
+  record_date?: string
+  period?: 'DAILY' | 'WEEKLY'
+  numeric_value?: number | null
+  asset_url?: string | null
+  is_missing?: boolean
+}
+
 export const kpisApi = {
   getDefinitions: () =>
     client.get<KPIDefinition[]>('/kpis/definitions').then((r) => r.data),
@@ -13,4 +31,10 @@ export const kpisApi = {
     if (kpiId) params.set('kpi_id', kpiId)
     return client.get<KPIRecord[]>(`/kpis/records?${params}`).then((r) => r.data)
   },
+
+  createRecordsBulk: (records: KPIRecordBulkCreateItem[]) =>
+    client.post<{ records: KPIRecord[]; total: number }>('/kpis/records/bulk', { records }).then((r) => r.data),
+
+  updateRecord: (recordId: string, patch: KPIRecordPatch) =>
+    client.patch<KPIRecord>(`/kpis/records/${recordId}`, patch).then((r) => r.data),
 }

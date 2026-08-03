@@ -12,4 +12,10 @@ export const highlightsApi = {
 
   create: (data: Omit<Highlight, 'id' | 'created_at' | 'created_by' | 'api_key_id'>) =>
     client.post<Highlight>('/highlights', data).then((r) => r.data),
+
+  update: (id: string, patch: { value?: string; status?: 'GOOD' | 'BAD' }) =>
+    client.patch<Highlight>(`/highlights/${id}`, patch).then((r) => r.data),
+
+  remove: (id: string) =>
+    client.delete(`/highlights/${id}`).then((r) => r.data),
 }

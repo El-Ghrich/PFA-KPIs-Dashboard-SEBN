@@ -4,7 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.domains.kpis.schemas import (
     KPIDefinitionCreate, KPIDefinitionResponse,
-    KPIRecordCreate, KPIRecordUpdate, KPIRecordResponse,
+    KPIRecordCreate, KPIRecordUpdate,
+    KPIRecordWriteResponse, KPIRecordResponse,
     KPIRecordBulkCreate, KPIRecordBulkResponse,
     RecordPeriodEnum,
 )
@@ -41,7 +42,7 @@ async def list_kpi_definitions(
 # SINGLE RECORD ENDPOINTS
 # ==========================================
 
-@router.post("/records", response_model=KPIRecordResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/records", response_model=KPIRecordWriteResponse, status_code=status.HTTP_201_CREATED)
 async def create_kpi_record(
     data: KPIRecordCreate,
     db: AsyncSession = Depends(get_db),
@@ -59,7 +60,7 @@ async def get_kpi_record(
     return await KPIService.get_record(session=db, record_id=record_id)
 
 
-@router.patch("/records/{record_id}", response_model=KPIRecordResponse)
+@router.patch("/records/{record_id}", response_model=KPIRecordWriteResponse)
 async def update_kpi_record(
     record_id: str,
     data: KPIRecordUpdate,

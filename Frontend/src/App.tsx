@@ -1,8 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Sidebar from './components/Sidebar'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import WeeklyEntry from './pages/WeeklyEntry'
 import type { ReactNode } from 'react'
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -11,11 +12,17 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return user ? <>{children}</> : <Navigate to="/login" replace />
 }
 
+function AdminRoute({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
+  if (user && user.role === 'ADMIN') return <>{children}</>
+  return <Navigate to="/" replace />
+}
+
 function AppLayout() {
   return (
     <div className="flex h-screen w-full overflow-hidden">
       <Sidebar />
-      <Dashboard />
+      <Outlet />
     </div>
   )
 }
@@ -26,14 +33,10 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          />
+          <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/entry" element={<AdminRoute><WeeklyEntry /></AdminRoute>} />
+          </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>

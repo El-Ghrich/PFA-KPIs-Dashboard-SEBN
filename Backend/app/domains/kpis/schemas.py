@@ -58,17 +58,22 @@ class KPIRecordUpdate(BaseModel):
     asset_url: Optional[str] = None
     is_missing: Optional[bool] = None
 
-class KPIRecordResponse(KPIRecordBase):
+class KPIRecordResponseBase(KPIRecordBase):
     id: str
     created_at: datetime
     created_by: Optional[str] = None
-    kpi_definition: Optional[KPIDefinitionResponse] = None
     
     model_config = ConfigDict(from_attributes=True)
+
+class KPIRecordWriteResponse(KPIRecordResponseBase):
+    pass
+
+class KPIRecordResponse(KPIRecordResponseBase):
+    kpi_definition: Optional[KPIDefinitionResponse] = None
 
 class KPIRecordBulkCreate(BaseModel):
     records: list[KPIRecordCreate]
 
 class KPIRecordBulkResponse(BaseModel):
-    records: list[KPIRecordResponse]
+    records: list[KPIRecordWriteResponse]
     total: int
