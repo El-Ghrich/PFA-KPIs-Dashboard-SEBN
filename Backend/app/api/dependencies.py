@@ -27,6 +27,7 @@ async def get_current_user(
             detail="Not authenticated"
         )
 
+    
     token = credentials.credentials
 
     payload = _try_decode_jwt(token)
@@ -55,10 +56,21 @@ async def get_current_user(
 async def require_admin(
     user: UserSession = Depends(get_current_user)
 ) -> UserSession:
-    if user.source != "jwt" or user.role != "ADMIN":
+    if user.source != "jwt" or user.role not in ("ADMIN", "SUPER_ADMIN"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
+        )
+    return user
+
+
+async def require_super_admin(
+    user: UserSession = Depends(get_current_user)
+) -> UserSession:
+    if user.source != "jwt" or user.role != "SUPER_ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Super admin access required"
         )
     return user
 
@@ -79,7 +91,7 @@ async def require_write_access(
 ) -> UserSession:
     if user.source == "api_key":
         return user
-    if user.source == "jwt" and user.role == "ADMIN":
+    if user.source == "jwt" and user.role in ("ADMIN", "SUPER_ADMIN"):
         return user
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
@@ -98,14 +110,14 @@ def _try_decode_jwt(token: str) -> dict | None:
 
 
 async def _try_find_api_key(db: AsyncSession, token: str):
-    from app.domains.api_keys.models import ApiKey
+    from app.domains.api_keys.models import ApiKey, ApiKeyStatus
     from datetime import datetime, timezone
 
     key_hash = hash_api_key(token)
     result = await db.execute(
         select(ApiKey).where(
             ApiKey.key_hash == key_hash,
-            ApiKey.is_active == True,
+            ApiKey.status == ApiKeyStatus.ACTIVE,
             ApiKey.expires_at > datetime.now(timezone.utc)
         )
     )

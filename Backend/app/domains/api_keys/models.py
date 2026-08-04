@@ -1,12 +1,19 @@
 from datetime import datetime, timezone
 from typing import Optional, TYPE_CHECKING
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import String, Enum, DateTime, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.base import Base
 from uuid import uuid4
+import enum
 
 if TYPE_CHECKING:
     from app.domains.users.models import User
+
+
+class ApiKeyStatus(str, enum.Enum):
+    ACTIVE = "ACTIVE"
+    REVOKED = "REVOKED"
+    DELETED = "DELETED"
 
 
 class ApiKey(Base):
@@ -19,7 +26,9 @@ class ApiKey(Base):
     key_hash: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    status: Mapped[ApiKeyStatus] = mapped_column(
+        Enum(ApiKeyStatus), default=ApiKeyStatus.ACTIVE, nullable=False
+    )
     last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 

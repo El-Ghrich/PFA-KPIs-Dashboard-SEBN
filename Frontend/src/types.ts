@@ -42,7 +42,7 @@ export interface User {
   id: string
   email: string
   full_name: string
-  role: 'ADMIN' | 'VIEWER'
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'VIEWER'
   created_at: string
 }
 
@@ -58,6 +58,29 @@ export interface Paginated<T> {
   total: number
   page: number
   page_size: number
+}
+
+export interface ApiKey {
+  id: string
+  name: string
+  description: string | null
+  key_prefix: string
+  user_id: string
+  status: 'ACTIVE' | 'REVOKED' | 'DELETED'
+  expires_at: string
+  last_used_at: string | null
+  created_at: string
+}
+
+export interface ApiKeyCreated extends ApiKey {
+  plain_key: string
+}
+
+export interface ApiKeyCreateInput {
+  name: string
+  description?: string | null
+  expires_at: string
+  user_id?: string | null
 }
 
 export interface FilterState {

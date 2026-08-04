@@ -48,6 +48,7 @@ PROJECTS = [
 ]
 
 USERS = [
+    {"email": "superadmin@hcm.com", "full_name": "Super Admin", "role": UserRole.SUPER_ADMIN, "password": "superadmin123"},
     {"email": "admin@hcm.com", "full_name": "Admin User", "role": UserRole.ADMIN, "password": "admin123"},
     {"email": "viewer@hcm.com", "full_name": "Viewer User", "role": UserRole.VIEWER, "password": "viewer123"},
 ]
@@ -194,7 +195,7 @@ async def seed():
                         KPIRecord.period == RecordPeriod.WEEKLY,
                     )
                 )
-                if not existing_record.scalar_one_or_none():
+                if not existing_record.scalars().first():
                     records = []
                     for def_name, definition in def_map.items():
                         record = KPIRecord(
@@ -216,7 +217,7 @@ async def seed():
                         Highlight.period == HighlightPeriod.WEEKLY,
                     )
                 )
-                highlight = existing_highlight.scalar_one_or_none()
+                highlight = existing_highlight.scalars().first()
                 status = HIGHLIGHT_STATUS.get(data["Highlight"], HighlightStatus.GOOD)
                 if highlight:
                     highlight.value = data["Highlight"]

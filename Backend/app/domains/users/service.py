@@ -1,11 +1,11 @@
 import hashlib
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update
 from fastapi import HTTPException, status
 
-from app.domains.users.models import User, RefreshToken
-from app.domains.users.schemas import UserCreate, UserLogin
+from app.domains.users.models import User, RefreshToken, UserRole
+from app.domains.users.schemas import UserCreate, UserLogin, UserUpdate, UserRoleEnum
 from app.core.security import (
     hash_password, verify_password,
     create_access_token, create_refresh_token, decode_token
@@ -15,7 +15,42 @@ from app.core.security import (
 class UserService:
 
     @staticmethod
-    async def signup(session: AsyncSession, data: UserCreate) -> User:
+    async def _validate_role_assignment(
+        session: AsyncSession,
+        actor_role: str | None,
+        requested_role: UserRoleEnum,
+        exclude_user_id: str | None = None,
+    ) -> None:
+        # Admins can only manage viewer accounts.
+        if actor_role == UserRole.ADMIN.value and requested_role != UserRoleEnum.VIEWER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admins can only manage viewer accounts"
+            )
+
+        # Only the super admin may grant the super admin role, and only one may exist.
+        if requested_role == UserRoleEnum.SUPER_ADMIN:
+            if actor_role != UserRole.SUPER_ADMIN.value:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only the super admin can grant the super admin role"
+                )
+            stmt = select(User).where(User.role == UserRole.SUPER_ADMIN)
+            if exclude_user_id:
+                stmt = stmt.where(User.id != exclude_user_id)
+            existing = await session.execute(stmt)
+            if existing.scalar_one_or_none():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="A super admin account already exists"
+                )
+
+    @staticmethod
+    async def signup(session: AsyncSession, data: UserCreate, actor_role: str | None = None) -> User:
+        await UserService._validate_role_assignment(
+            session, actor_role=actor_role, requested_role=data.role
+        )
+
         existing = await session.execute(
             select(User).where(User.email == data.email)
         )
@@ -122,6 +157,117 @@ class UserService:
         return user
 
     @staticmethod
-    async def list_users(session: AsyncSession) -> list[User]:
-        result = await session.execute(select(User))
+    async def list_users(session: AsyncSession, actor_role: str) -> list[User]:
+        stmt = select(User).order_by(User.created_at.desc())
+        if actor_role == UserRole.ADMIN.value:
+            stmt = stmt.where(User.role == UserRole.VIEWER)
+        result = await session.execute(stmt)
         return result.scalars().all()
+
+    @staticmethod
+    async def update_user(session: AsyncSession, user_id: str, data: UserUpdate, actor_role: str) -> User:
+        user = await session.get(User, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        updates = data.model_dump(exclude_unset=True)
+        requested_role = updates.get("role")
+
+        # Admins can only touch viewers and cannot change roles.
+        if actor_role == UserRole.ADMIN.value:
+            if user.role != UserRole.VIEWER:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Admins can only manage viewer accounts"
+                )
+            if requested_role is not None and requested_role != UserRoleEnum.VIEWER:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Admins cannot change roles"
+                )
+
+        # The super admin account is protected.
+        if user.role == UserRole.SUPER_ADMIN:
+            if actor_role != UserRole.SUPER_ADMIN.value:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="The super admin account can only be managed by the super admin"
+                )
+            if requested_role is not None and requested_role != UserRoleEnum.SUPER_ADMIN:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="The super admin account cannot be demoted"
+                )
+
+        # Any role change must respect the role assignment rules.
+        if requested_role is not None:
+            await UserService._validate_role_assignment(
+                session, actor_role=actor_role, requested_role=requested_role,
+                exclude_user_id=user_id,
+            )
+
+        if "password" in updates:
+            updates["password_hash"] = hash_password(updates.pop("password"))
+
+        if "email" in updates:
+            existing = await session.execute(
+                select(User).where(User.email == updates["email"], User.id != user_id)
+            )
+            if existing.scalar_one_or_none():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email already registered"
+                )
+
+        for key, value in updates.items():
+            setattr(user, key, value)
+
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+    @staticmethod
+    async def delete_user(session: AsyncSession, user_id: str, actor_role: str) -> None:
+        user = await session.get(User, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        if user.role == UserRole.SUPER_ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="The super admin account cannot be deleted"
+            )
+
+        if actor_role == UserRole.ADMIN.value and user.role != UserRole.VIEWER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admins can only manage viewer accounts"
+            )
+
+        from app.domains.api_keys.models import ApiKey
+        from app.domains.projects.models import Project
+        from app.domains.kpis.models import KPIRecord
+        from app.domains.highlights.models import Highlight
+
+        keys = await session.execute(select(ApiKey).where(ApiKey.user_id == user_id))
+        for key in keys.scalars():
+            await session.delete(key)
+
+        await session.execute(
+            update(Project).where(Project.created_by == user_id).values(created_by=None)
+        )
+        await session.execute(
+            update(KPIRecord).where(KPIRecord.created_by == user_id).values(created_by=None)
+        )
+        await session.execute(
+            update(Highlight).where(Highlight.created_by == user_id).values(created_by=None)
+        )
+
+        await session.delete(user)
+        await session.commit()

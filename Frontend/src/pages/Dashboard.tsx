@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import FilterBar from '../components/FilterBar'
 import { projectsApi } from '../api/projects'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -13,16 +12,66 @@ import { buildDefaultFilters } from '../features/dashboard/filters'
 import { useDashboardData } from '../features/dashboard/useDashboardData'
 import { buildChartWeekData, computeKpis, groupRecords, splitHighlights } from '../features/dashboard/transformers'
 import type { FilterState } from '../types'
+import { tokenStorage } from '../lib/tokenStorage'
 
 export default function Dashboard() {
   const [filters, setFilters] = useState<FilterState>(() => buildDefaultFilters([]))
+  const [projects, setProjects] = useState<any[]>([])
+  const [isProjectsLoading, setIsProjectsLoading] = useState(true)
+  const [projectsError, setProjectsError] = useState<Error | null>(null)
   const isDesktop = useBreakpoint(BREAKPOINT_DESKTOP)
 
-  const projectsQuery = useQuery({
-    queryKey: ['projects'],
-    queryFn: () => projectsApi.list(1, 100),
-  })
-  const projects = projectsQuery.data?.items ?? []
+  // Fetch projects normally
+  useEffect(() => {
+    const fetchProjects = async () => {
+      const token = tokenStorage.getAccessToken()
+
+      if (!token) {
+        setIsProjectsLoading(false)
+        return
+      }
+
+      setIsProjectsLoading(true)
+      setProjectsError(null)
+
+      try {
+        const result = await projectsApi.list(1, 100)
+        setProjects(result.items || [])
+      } catch (error) {
+        setProjectsError(error as Error)
+      } finally {
+        setIsProjectsLoading(false)
+      }
+    }
+
+    fetchProjects()
+  }, []) // Run once on mount
+
+  // Also refetch when token changes (e.g., after login)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'access_token' || e.key === null) {
+        const fetchProjects = async () => {
+          const token = tokenStorage.getAccessToken()
+          if (!token) {
+            setProjects([])
+            return
+          }
+
+          try {
+            const result = await projectsApi.list(1, 100)
+            setProjects(result.items || [])
+          } catch (error) {
+            console.error('Projects refetch failed:', error)
+          }
+        }
+        fetchProjects()
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
 
   useEffect(() => {
     if (filters.projectId || projects.length === 0) return
@@ -51,6 +100,35 @@ export default function Dashboard() {
   )
 
   const projectName = projects.find(p => p.id === filters.projectId)?.name || ''
+
+  // Show loading state while projects are being fetched
+  if (isProjectsLoading) {
+    return (
+      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="max-w-[1440px] mx-auto w-full px-8 py-8">
+            <EmptyState className="h-64" message="Loading projects..." />
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  // Show error state if projects fetch failed
+  if (projectsError) {
+    return (
+      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="max-w-[1440px] mx-auto w-full px-8 py-8">
+            <EmptyState 
+              className="h-64" 
+              message={`Failed to load projects: ${projectsError.message}`} 
+            />
+          </div>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">

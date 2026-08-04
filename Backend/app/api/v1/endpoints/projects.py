@@ -11,10 +11,12 @@ from app.domains.projects.schemas import (
     ProjectWithKPIsResponse
 )
 from app.domains.projects.service import ProjectService
+from app.api.dependencies import require_user, require_write_access, UserSession
+
 
 router = APIRouter()
 
-@router.post("/", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
 async def create_project(
     project_in: ProjectCreate,
     db: AsyncSession = Depends(get_db)
@@ -25,8 +27,9 @@ async def create_project(
     return await ProjectService.create_project(session=db, data=project_in)
 
 
-@router.get("/", response_model=ProjectListResponse)
+@router.get("", response_model=ProjectListResponse)
 async def list_projects(
+    _: UserSession = Depends(require_user),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
     location: str | None = Query(None, description="Filter by location"),

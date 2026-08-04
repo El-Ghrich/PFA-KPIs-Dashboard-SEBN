@@ -5,24 +5,13 @@ export default function Sidebar() {
   const { user, logout } = useAuth()
   const location = useLocation()
 
-  const navItems = [
-    { href: '/', label: 'Overview', icon: <GridIcon />, active: location.pathname === '/' },
-    { href: '#', label: 'Real-Time Metrics', icon: <TrendingIcon /> },
-    { href: '#', label: 'Historian', icon: <ClockIcon /> },
-    { href: '#', label: 'Alarms', icon: <AlertIcon />, badge: '3' },
-  ]
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
 
-  const equipmentItems = [
-    { href: '#', label: 'Compressor Skids', icon: <ServerIcon /> },
-    { href: '#', label: 'Utilities', icon: <SettingsIcon /> },
-    { href: '#', label: 'HMI Panels', icon: <MonitorIcon /> },
-  ]
-
-  const reportItems = [
-    ...(user?.role === 'ADMIN' ? [{ href: '/entry', label: 'Weekly Entry', icon: <FileInputIcon /> }] : []),
-    { href: '#', label: 'Shift Logs', icon: <FileIcon /> },
-    { href: '#', label: 'Analytics', icon: <BarChartIcon /> },
-  ]
+  const reportItems = isAdmin ? [
+    { href: '/entry', label: 'Weekly Entry', icon: <FileInputIcon />, active: location.pathname === '/entry' },
+    { href: '/users', label: 'User Management', icon: <UsersIcon />, active: location.pathname === '/users' },
+    { href: '/api-keys', label: 'API Keys', icon: <KeyIcon />, active: location.pathname === '/api-keys' },
+  ] : []
 
   return (
     <aside className="hidden lg:flex flex-col w-[240px] flex-shrink-0 h-full overflow-y-auto bg-white border-r border-border-card">
@@ -31,26 +20,20 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
-        <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-on-surface-variant/50">Monitoring</p>
-        {navItems.map(item => (
-          <NavItem key={item.label} href={item.href} active={item.active} icon={item.icon} badge={item.badge}>
-            {item.label}
-          </NavItem>
-        ))}
+        <NavItem href="/" active={location.pathname === '/'} icon={<GridIcon />}>
+          Overview
+        </NavItem>
 
-        <p className="px-3 pt-5 pb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-on-surface-variant/50">Equipment</p>
-        {equipmentItems.map(item => (
-          <NavItem key={item.label} href={item.href} icon={item.icon}>
-            {item.label}
-          </NavItem>
-        ))}
-
-        <p className="px-3 pt-5 pb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-on-surface-variant/50">Reports</p>
-        {reportItems.map(item => (
-          <NavItem key={item.label} href={item.href} icon={item.icon}>
-            {item.label}
-          </NavItem>
-        ))}
+        {reportItems.length > 0 && (
+          <>
+            <p className="px-3 pt-5 pb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-on-surface-variant/50">Reports</p>
+            {reportItems.map(item => (
+              <NavItem key={item.href} href={item.href} active={item.active} icon={item.icon}>
+                {item.label}
+              </NavItem>
+            ))}
+          </>
+        )}
       </nav>
 
       <div className="px-4 py-4 border-t border-border-card mt-auto">
@@ -103,12 +86,6 @@ function NavItem({ href, children, active, badge, icon }: { href: string; childr
 }
 
 function GridIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> }
-function TrendingIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> }
-function ClockIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> }
-function AlertIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> }
-function ServerIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg> }
-function SettingsIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> }
-function MonitorIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> }
-function FileIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> }
 function FileInputIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="13" y1="17" x2="16" y2="17"/><line x1="8" y1="17" x2="9" y2="17"/></svg> }
-function BarChartIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> }
+function UsersIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> }
+function KeyIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/></svg> }

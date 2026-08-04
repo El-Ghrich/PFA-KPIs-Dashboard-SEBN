@@ -15,9 +15,9 @@ security_scheme = HTTPBearer()
 async def signup(
     data: UserCreate,
     db: AsyncSession = Depends(get_db),
-    _: UserSession = Depends(require_admin)
+    actor: UserSession = Depends(require_admin)
 ):
-    return await UserService.signup(session=db, data=data)
+    return await UserService.signup(session=db, data=data, actor_role=actor.role)
 
 
 @router.post("/login")
