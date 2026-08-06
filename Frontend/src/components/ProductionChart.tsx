@@ -10,9 +10,7 @@ import {
   Legend,
   Filler,
   type ChartData,
-  type ChartDataset,
   type ChartOptions,
-  type Plugin,
   type ScriptableContext,
   type TooltipItem,
 } from 'chart.js'
@@ -203,39 +201,7 @@ export default function ProductionChart({ weekLabels, outputData, oeeData }: Pro
     },
   }
 
-  const labelPlugin: Plugin<MixedChart> = {
-    id: 'customLabels',
-    afterDraw(chart) {
-      const ctx = chart.ctx
-      const datasets = chart.data.datasets as ChartDataset<MixedChart, (number | null)[]>[]
-      datasets.forEach((dataset, i) => {
-        const meta = chart.getDatasetMeta(i)
-        const values = dataset.data ?? []
-        if (dataset.type === 'bar') {
-          meta.data.forEach((bar, index) => {
-            const value = values[index]
-            if (value === null || value === undefined) return
-            ctx.fillStyle = '#0f172a'
-            ctx.font = '600 11px Inter, Arial'
-            ctx.textAlign = 'center'
-            ctx.textBaseline = 'bottom'
-            ctx.fillText((value / 1000).toFixed(1) + 'k', bar.x, bar.y - 4)
-          })
-        }
-        if (dataset.label === 'OEE (%)') {
-          meta.data.forEach((point, index) => {
-            const value = values[index]
-            if (value === null || value === undefined) return
-            ctx.fillStyle = COLORS.oee
-            ctx.font = '600 11px Inter, Arial'
-            ctx.textAlign = 'center'
-            ctx.textBaseline = 'bottom'
-            ctx.fillText(value + '%', point.x, point.y - 8)
-          })
-        }
-      })
-    },
-  }
+
 
   const mobile = weekLabels.length <= 4
 
@@ -257,7 +223,7 @@ export default function ProductionChart({ weekLabels, outputData, oeeData }: Pro
           type="bar"
           options={options}
           data={data}
-          plugins={[labelPlugin]}
+          plugins={[]}
         />
       </div>
     </Card>

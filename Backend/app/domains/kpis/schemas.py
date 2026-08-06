@@ -42,6 +42,7 @@ class KPIDefinitionResponse(KPIDefinitionBase):
 class KPIRecordBase(BaseModel):
     project_id: str
     kpi_id: str
+    set_id: Optional[str] = None
     record_date: date
     period: RecordPeriodEnum
     numeric_value: Optional[float] = None

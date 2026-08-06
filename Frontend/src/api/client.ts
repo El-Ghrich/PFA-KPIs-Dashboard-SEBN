@@ -76,9 +76,9 @@ client.interceptors.response.use(
     const refreshToken = tokenStorage.getRefreshToken()
     
     if (!refreshToken) {
+      // No session at all (unauthenticated public visitor) — fail silently,
+      // don't redirect to /login so the public dashboard stays usable.
       isRefreshing = false
-      tokenStorage.clearTokens()
-      window.location.href = '/login'
       return Promise.reject(error)
     }
 
@@ -101,7 +101,7 @@ client.interceptors.response.use(
       return client(original)
 
     } catch (refreshError) {
-      // Refresh failed - clear everything and redirect
+      // Refresh token is invalid/expired — clear tokens and redirect to login
       processQueue(refreshError, null)
       tokenStorage.clearTokens()
       isRefreshing = false

@@ -32,7 +32,20 @@ class ProjectBase(BaseModel):
 
 class ProjectCreate(ProjectBase):
     """Schema for creating a new project"""
-    pass
+    initial_sets_count: int = Field(
+        default=1,
+        ge=1,
+        le=20,
+        description="Number of initial sets to auto-create (Set 1, Set 2...)"
+    )
+
+
+class ProjectSetCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50, description="Set name")
+
+
+class ProjectSetUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=50, description="New set name")
 
 # ==========================================
 # UPDATE SCHEMA
@@ -68,10 +81,20 @@ class ProjectUpdate(BaseModel):
 # RESPONSE SCHEMA
 # ==========================================
 
+class ProjectSetResponse(BaseModel):
+    id: str
+    project_id: str
+    name: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ProjectResponse(ProjectBase):
     """Schema for returning project data"""
     id: uuid.UUID
     created_at: datetime
+    sets: list[ProjectSetResponse] = []
     
     # Pydantic V2 syntax for ORM mode
     model_config = ConfigDict(from_attributes=True)

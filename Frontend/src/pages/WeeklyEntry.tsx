@@ -13,6 +13,7 @@ import { DEFAULT_YEAR, YEARS } from '../lib/constants'
 import { getCurrentISOWeek, isoWeekRange, mondayOfISOWeek, weekLabelFromNumber } from '../lib/isoDate'
 import { formatDateRange } from '../lib/format'
 import type { KPIRecord } from '../types'
+import { Layers, Save, CheckCircle2, AlertCircle } from 'lucide-react'
 
 const WEEK_OPTIONS = Array.from({ length: 53 }, (_, i) => ({
   value: i + 1,
@@ -32,6 +33,7 @@ export default function WeeklyEntry() {
   const queryClient = useQueryClient()
 
   const [projectId, setProjectId] = useState('')
+  const [setId, setSetId] = useState('')
   const [year, setYear] = useState(DEFAULT_YEAR)
   const [week, setWeek] = useState(getCurrentISOWeek())
   const [values, setValues] = useState<Record<string, string>>({})
@@ -44,11 +46,23 @@ export default function WeeklyEntry() {
   })
   const projects = projectsQuery.data?.items ?? []
 
+  const selectedProject = projects.find(p => p.id === projectId)
+  const projectSets = selectedProject?.sets ?? []
+
   useEffect(() => {
     if (projectId || projects.length === 0) return
     setProjectId(projects[0].id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, projects])
+
+  useEffect(() => {
+    if (projectSets.length === 0) {
+      setSetId('')
+    } else if (!projectSets.some(s => s.id === setId)) {
+      setSetId(projectSets[0].id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, projectSets])
 
   const definitionsQuery = useQuery({
     queryKey: ['kpi-definitions'],
@@ -56,24 +70,26 @@ export default function WeeklyEntry() {
   })
   const definitions = definitionsQuery.data ?? []
 
-  const enabled = !!projectId
+  const enabled = !!projectId && !!setId
   const recordDate = useMemo(
     () => (enabled ? toISODate(mondayOfISOWeek(year, week)) : ''),
     [enabled, year, week],
   )
   const weekRange = useMemo(() => isoWeekRange(year, week), [year, week])
 
+  // Fetch KPI records for active set
   const recordsQuery = useQuery({
-    queryKey: ['weekly-records', projectId, year, week],
-    queryFn: () => kpisApi.getRecords(projectId, 'WEEKLY', year, week),
+    queryKey: ['weekly-records', projectId, setId, year, week],
+    queryFn: () => kpisApi.getRecords(projectId, 'WEEKLY', year, week, undefined, setId),
     enabled,
   })
   const records = recordsQuery.data ?? []
 
+  // Fetch project-level highlights
   const highlightsQuery = useQuery({
     queryKey: ['weekly-highlights', projectId, year, week],
     queryFn: () => highlightsApi.list(projectId, 'WEEKLY', year, week),
-    enabled,
+    enabled: Boolean(projectId),
   })
   const existingHighlights = highlightsQuery.data ?? []
 
@@ -85,10 +101,10 @@ export default function WeeklyEntry() {
     }
     setValues(next)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, records, recordsQuery.isLoading])
+  }, [enabled, setId, records, recordsQuery.isLoading])
 
   useEffect(() => {
-    if (!enabled || highlightsQuery.isLoading) return
+    if (!projectId || highlightsQuery.isLoading) return
     const g: HighlightEditorItem[] = []
     const b: HighlightEditorItem[] = []
     for (const h of existingHighlights) {
@@ -99,18 +115,17 @@ export default function WeeklyEntry() {
     setGood(g)
     setBad(b)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, existingHighlights, highlightsQuery.isLoading])
+  }, [projectId, existingHighlights, highlightsQuery.isLoading])
 
   const recordsByKpi = useMemo(() => {
     const map: Record<string, KPIRecord> = {}
     for (const rec of records) map[rec.kpi_id] = rec
     return map
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [records])
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const createItems: { project_id: string; kpi_id: string; record_date: string; period: 'WEEKLY'; numeric_value: number }[] = []
+      const createItems: { project_id: string; set_id: string; kpi_id: string; record_date: string; period: 'WEEKLY'; numeric_value: number }[] = []
       const patches: { id: string; numeric_value: number }[] = []
 
       for (const def of definitions) {
@@ -121,6 +136,7 @@ export default function WeeklyEntry() {
         if (existing) patches.push({ id: existing.id, numeric_value: numeric })
         else createItems.push({
           project_id: projectId,
+          set_id: setId,
           kpi_id: def.id,
           record_date: recordDate,
           period: 'WEEKLY',
@@ -157,27 +173,29 @@ export default function WeeklyEntry() {
     },
   })
 
-  const anyExisting = records.length > 0 || existingHighlights.length > 0
+  const selectedSet = projectSets.find(s => s.id === setId)
+  const anyExisting = records.length > 0
 
   return (
     <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="max-w-[1440px] mx-auto w-full px-8 py-8">
+        <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-8 py-6 sm:py-8">
           <header className="mb-6">
-            <h1 className="text-2xl font-semibold text-on-surface">Weekly KPI Entry</h1>
+            <h1 className="text-2xl font-semibold text-on-surface">Weekly KPI Data Entry</h1>
             <p className="text-sm text-on-surface-variant mt-1">
-              Record or update output, OEE, downtime, scrap rate and an optional highlight for the selected week.
+              Select a project and machine set to record or update weekly production KPIs and project highlights.
             </p>
           </header>
 
+          {/* Project & Date Selector Card */}
           <Card className="mb-6">
             <div className="flex flex-wrap items-end gap-4">
               <Dropdown<string>
                 label="Project"
                 value={projectId}
-                options={projects.map(p => ({ value: p.id, label: p.name }))}
+                options={projects.map(p => ({ value: p.id, label: `${p.name} (${p.location})` }))}
                 onChange={setProjectId}
-                className="min-w-[200px]"
+                className="min-w-[220px]"
               />
               <Dropdown<number>
                 label="ISO Year"
@@ -199,27 +217,61 @@ export default function WeeklyEntry() {
             </div>
           </Card>
 
-          {!enabled ? (
-            <EmptyState className="h-64" message="Select a project to load the week" />
+          {!projectId ? (
+            <EmptyState className="h-64" message="Select a project to load data" />
+          ) : projectSets.length === 0 ? (
+            <EmptyState className="h-64" message="No sets configured for this project. Please add a set in Project Management." />
           ) : definitionsQuery.isLoading || recordsQuery.isLoading || highlightsQuery.isLoading ? (
             <EmptyState className="h-64" message="Loading week data..." />
           ) : (
             <Card>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[15px] font-semibold text-on-surface">
-                  {weekLabelFromNumber(week)} · {formatDateRange(weekRange.monday, weekRange.sunday, true)}
-                </h2>
+              {/* Window-like Set Selector Bar */}
+              <div className="mb-6 bg-surface-container/60 p-1.5 rounded-xl border border-border-card flex items-center justify-between gap-2 overflow-x-auto">
+                <div className="flex items-center gap-1.5">
+                  <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70 flex items-center gap-1">
+                    <Layers className="w-3.5 h-3.5 text-primary" />
+                    Select Set:
+                  </div>
+                  {projectSets.map((s) => {
+                    const isActive = s.id === setId
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => setSetId(s.id)}
+                        className={`
+                          px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center gap-2 whitespace-nowrap
+                          ${isActive
+                            ? 'bg-white text-primary shadow-sm border border-primary/20 scale-[1.02]'
+                            : 'text-on-surface-variant hover:text-on-surface hover:bg-white/60'
+                          }
+                        `}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-primary' : 'bg-on-surface-variant/30'}`} />
+                        {s.name}
+                      </button>
+                    )
+                  })}
+                </div>
+
                 {anyExisting && (
-                  <span className="text-[11px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-primary/10 text-primary">
-                    Week has existing data — editing in place
+                  <span className="text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-primary/10 text-primary whitespace-nowrap mr-2">
+                    Editing existing data for {selectedSet?.name}
                   </span>
                 )}
               </div>
 
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4 border-b border-border-card pb-3">
+                <h2 className="text-[15px] font-semibold text-on-surface">
+                  {selectedProject?.name} · <span className="text-primary font-bold">{selectedSet?.name}</span> · {weekLabelFromNumber(week)} ({formatDateRange(weekRange.monday, weekRange.sunday, true)})
+                </h2>
+              </div>
+
+              {/* KPI Input Fields */}
               {definitions.length === 0 ? (
                 <EmptyState className="h-40" message="No KPI definitions found" />
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   {definitions.map(def => (
                     <Input
                       key={def.id}
@@ -229,14 +281,15 @@ export default function WeeklyEntry() {
                       inputMode="decimal"
                       step="any"
                       value={values[def.id] ?? ''}
-                      suffix={<span className="text-[12px] text-on-surface-variant/60">{def.unit}</span>}
+                      suffix={<span className="text-[12px] font-semibold text-on-surface-variant/60">{def.unit}</span>}
                       onChange={e => setValues(prev => ({ ...prev, [def.id]: e.target.value }))}
                     />
                   ))}
                 </div>
               )}
 
-              <div className="mb-6">
+              {/* Project Highlights Section */}
+              <div className="mb-6 pt-4 border-t border-border-card">
                 <HighlightEditor
                   good={good}
                   bad={bad}
@@ -244,15 +297,23 @@ export default function WeeklyEntry() {
                 />
               </div>
 
-              <div className="flex items-center gap-3">
-                <Button onClick={() => saveMutation.mutate()} loading={saveMutation.isPending}>
-                  {anyExisting ? 'Update week' : 'Save week'}
+              {/* Save Bar */}
+              <div className="flex items-center gap-3 pt-2">
+                <Button onClick={() => saveMutation.mutate()} loading={saveMutation.isPending} className="flex items-center gap-2">
+                  <Save className="w-4 h-4" />
+                  {anyExisting ? `Update ${selectedSet?.name}` : `Save ${selectedSet?.name}`}
                 </Button>
                 {saveMutation.isSuccess && (
-                  <p className="text-[13px] text-tertiary font-medium">Saved — dashboard updated.</p>
+                  <p className="text-[13px] text-emerald-600 font-medium flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    Saved successfully — dashboard updated.
+                  </p>
                 )}
                 {saveMutation.isError && (
-                  <p className="text-[13px] text-error font-medium">Save failed. Please try again.</p>
+                  <p className="text-[13px] text-error font-medium flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4 text-error" />
+                    Save failed. Please try again.
+                  </p>
                 )}
               </div>
             </Card>

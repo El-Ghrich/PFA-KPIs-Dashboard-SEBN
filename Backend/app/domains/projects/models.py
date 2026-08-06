@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional, TYPE_CHECKING
-from sqlalchemy import String, Enum, DateTime, ForeignKey
+from sqlalchemy import String, Enum, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.base import Base
 import enum
@@ -49,6 +49,12 @@ class Project(Base):
         default=ProjectStatus.ACTIVE
     )
 
+    is_deleted: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -77,10 +83,54 @@ class Project(Base):
         cascade="all, delete-orphan"
     )
 
+    sets: Mapped[list["ProjectSet"]] = relationship(
+        back_populates="project",
+        cascade="all, delete-orphan"
+    )
+
     creator: Mapped[Optional["User"]] = relationship(back_populates="projects")
 
     def __repr__(self) -> str:
         return f"<Project(id={self.id}, name={self.name}, status={self.status}, location={self.location})>"
+
+
+class ProjectSet(Base):
+    __tablename__ = "project_sets"
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid4())
+    )
+
+    project_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    name: Mapped[str] = mapped_column(
+        String,
+        nullable=False
+    )
+
+    is_deleted: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False
+    )
+
+    project: Mapped["Project"] = relationship(back_populates="sets")
+    kpi_records: Mapped[list["KPIRecord"]] = relationship(back_populates="set", cascade="all, delete-orphan")
+
+    def __repr__(self) -> str:
+        return f"<ProjectSet(id={self.id}, name={self.name}, project_id={self.project_id})>"
 
 
 from app.domains.kpis.models import KPIRecord  # noqa: E402, F811

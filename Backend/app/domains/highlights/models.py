@@ -45,3 +45,4 @@ class Highlight(Base):
 from app.domains.users.models import User  # noqa: E402, F811
 from app.domains.projects.models import Project  # noqa: E402, F811
 from app.domains.api_keys.models import ApiKey
+

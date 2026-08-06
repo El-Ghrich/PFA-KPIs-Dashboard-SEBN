@@ -1,20 +1,20 @@
 import uuid
 from typing import Sequence, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from sqlalchemy.orm import joinedload
+from sqlalchemy import select, func, update
+from sqlalchemy.orm import joinedload, selectinload
 from fastapi import HTTPException, status
 
-from app.domains.projects.models import Project
-from app.domains.projects.schemas import ProjectCreate, ProjectUpdate
+from app.domains.projects.models import Project, ProjectSet
+from app.domains.projects.schemas import ProjectCreate, ProjectUpdate, ProjectSetCreate, ProjectSetUpdate
+
 
 class ProjectService:
     
     @staticmethod
     async def create_project(session: AsyncSession, data: ProjectCreate) -> Project:
-        """Creates a new project, ensuring the project name is unique."""
-        # 1. Check for existing project with the same name
-        query = select(Project).where(Project.name == data.name)
+        """Creates a new project and auto-generates initial sets."""
+        query = select(Project).where(Project.name == data.name, Project.is_deleted == False)
         result = await session.execute(query)
         
         if result.scalars().first():
@@ -23,13 +23,21 @@ class ProjectService:
                 detail=f"A project named '{data.name}' already exists."
             )
             
-        # 2. Instantiate and save
-        new_project = Project(**data.model_dump())
+        dump = data.model_dump()
+        initial_sets_count = dump.pop("initial_sets_count", 1)
+
+        new_project = Project(**dump)
         session.add(new_project)
+        await session.flush()
+
+        # Create initial sets
+        for i in range(1, initial_sets_count + 1):
+            session.add(ProjectSet(project_id=new_project.id, name=f"Set {i}"))
+
         await session.commit()
-        await session.refresh(new_project)
         
-        return new_project
+        # Reload with sets
+        return await ProjectService.get_project(session, uuid.UUID(new_project.id))
 
     @staticmethod
     async def get_projects(
@@ -38,12 +46,19 @@ class ProjectService:
         page_size: int = 10,
         location: str | None = None
     ) -> Tuple[Sequence[Project], int]:
-        """Retrieves a paginated list of projects, optionally filtered by location."""
+        """Retrieves a paginated list of active projects, optionally filtered by location."""
         
-        base_query = select(Project)
-        count_query = select(func.count()).select_from(Project)
+        base_query = (
+            select(Project)
+            .where(Project.is_deleted == False)
+            .options(
+                selectinload(Project.sets.and_(ProjectSet.is_deleted == False))
+            )
+            .order_by(Project.created_at.desc())
+        )
+        count_query = select(func.count()).select_from(Project).where(Project.is_deleted == False)
 
-        if location:
+        if location and location != 'All':
             base_query = base_query.where(Project.location == location)
             count_query = count_query.where(Project.location == location)
 
@@ -62,10 +77,13 @@ class ProjectService:
         project_id: uuid.UUID, 
         include_kpis: bool = False
     ) -> Project:
-        """Fetches a single project, optionally joining its KPI records."""
-        query = select(Project).where(Project.id == str(project_id))
+        """Fetches a single active project, optionally joining its KPI records."""
+        query = (
+            select(Project)
+            .where(Project.id == str(project_id), Project.is_deleted == False)
+            .options(selectinload(Project.sets.and_(ProjectSet.is_deleted == False)))
+        )
         
-        # Conditionally load the KPI records if the router needs them
         if include_kpis:
             query = query.options(joinedload(Project.kpi_records))
             
@@ -87,13 +105,14 @@ class ProjectService:
         data: ProjectUpdate
     ) -> Project:
         """Dynamically updates provided fields on an existing project."""
-        
-        # 1. Fetch the existing project
         project = await ProjectService.get_project(session, project_id)
         
-        # 2. Check name collision if they are trying to rename it
         if data.name and data.name != project.name:
-            query = select(Project).where(Project.name == data.name)
+            query = select(Project).where(
+                Project.name == data.name,
+                Project.id != str(project_id),
+                Project.is_deleted == False
+            )
             result = await session.execute(query)
             if result.scalars().first():
                 raise HTTPException(
@@ -101,14 +120,72 @@ class ProjectService:
                     detail=f"A project named '{data.name}' already exists."
                 )
         
-        # 3. Apply changes dynamically using exclude_unset
-        # exclude_unset=True ensures we only update fields the user actually sent in the JSON payload
         update_data = data.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(project, key, value)
             
         session.add(project)
         await session.commit()
-        await session.refresh(project)
+        return await ProjectService.get_project(session, project_id)
+
+    @staticmethod
+    async def soft_delete_project(session: AsyncSession, project_id: uuid.UUID) -> None:
+        """Soft deletes a project and all its sets."""
+        project = await ProjectService.get_project(session, project_id)
+        project.is_deleted = True
+
+        # Soft delete sets as well
+        await session.execute(
+            update(ProjectSet)
+            .where(ProjectSet.project_id == str(project_id))
+            .values(is_deleted=True)
+        )
+
+        await session.commit()
+
+    # ==========================================
+    # SET OPERATIONS
+    # ==========================================
+
+    @staticmethod
+    async def add_set(session: AsyncSession, project_id: uuid.UUID, data: ProjectSetCreate) -> ProjectSet:
+        project = await ProjectService.get_project(session, project_id)
         
-        return project
+        new_set = ProjectSet(project_id=str(project_id), name=data.name)
+        session.add(new_set)
+        await session.commit()
+        await session.refresh(new_set)
+        return new_set
+
+    @staticmethod
+    async def update_set(
+        session: AsyncSession, 
+        project_id: uuid.UUID, 
+        set_id: str, 
+        data: ProjectSetUpdate
+    ) -> ProjectSet:
+        await ProjectService.get_project(session, project_id)
+        
+        pset = await session.get(ProjectSet, set_id)
+        if not pset or pset.project_id != str(project_id) or pset.is_deleted:
+            raise HTTPException(status_code=404, detail="Set not found.")
+
+        if data.name:
+            pset.name = data.name
+
+        session.add(pset)
+        await session.commit()
+        await session.refresh(pset)
+        return pset
+
+    @staticmethod
+    async def soft_delete_set(session: AsyncSession, project_id: uuid.UUID, set_id: str) -> None:
+        await ProjectService.get_project(session, project_id)
+        
+        pset = await session.get(ProjectSet, set_id)
+        if not pset or pset.project_id != str(project_id) or pset.is_deleted:
+            raise HTTPException(status_code=404, detail="Set not found.")
+
+        pset.is_deleted = True
+        session.add(pset)
+        await session.commit()

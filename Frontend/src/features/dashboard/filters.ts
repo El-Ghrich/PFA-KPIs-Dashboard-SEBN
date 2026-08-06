@@ -11,6 +11,6 @@ export function buildDefaultFilters(projects: Project[]): FilterState {
     year: DEFAULT_YEAR,
     week: currentWeek,
     compareWeek: currentWeek - 1,
-    machine: 'All',
+    setId: 'All',
   }
 }

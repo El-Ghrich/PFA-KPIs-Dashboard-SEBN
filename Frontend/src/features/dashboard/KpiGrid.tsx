@@ -9,7 +9,7 @@ interface KpiGridProps {
 
 export function KpiGrid({ kpis, diffValues }: KpiGridProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5 mb-6">
       {kpis.map((kpi, i) => (
         <KpiCard
           key={KPI_LABELS[i]}

@@ -21,14 +21,7 @@ class UserService:
         requested_role: UserRoleEnum,
         exclude_user_id: str | None = None,
     ) -> None:
-        # Admins can only manage viewer accounts.
-        if actor_role == UserRole.ADMIN.value and requested_role != UserRoleEnum.VIEWER:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admins can only manage viewer accounts"
-            )
-
-        # Only the super admin may grant the super admin role, and only one may exist.
+        # Only super admins can grant the super admin role, and only one may exist.
         if requested_role == UserRoleEnum.SUPER_ADMIN:
             if actor_role != UserRole.SUPER_ADMIN.value:
                 raise HTTPException(
@@ -158,9 +151,10 @@ class UserService:
 
     @staticmethod
     async def list_users(session: AsyncSession, actor_role: str) -> list[User]:
+        # Super admins see all users; admins see only other admins (not super admin)
         stmt = select(User).order_by(User.created_at.desc())
         if actor_role == UserRole.ADMIN.value:
-            stmt = stmt.where(User.role == UserRole.VIEWER)
+            stmt = stmt.where(User.role == UserRole.ADMIN)
         result = await session.execute(stmt)
         return result.scalars().all()
 
@@ -175,19 +169,6 @@ class UserService:
 
         updates = data.model_dump(exclude_unset=True)
         requested_role = updates.get("role")
-
-        # Admins can only touch viewers and cannot change roles.
-        if actor_role == UserRole.ADMIN.value:
-            if user.role != UserRole.VIEWER:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Admins can only manage viewer accounts"
-                )
-            if requested_role is not None and requested_role != UserRoleEnum.VIEWER:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Admins cannot change roles"
-                )
 
         # The super admin account is protected.
         if user.role == UserRole.SUPER_ADMIN:
@@ -242,12 +223,6 @@ class UserService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="The super admin account cannot be deleted"
-            )
-
-        if actor_role == UserRole.ADMIN.value and user.role != UserRole.VIEWER:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admins can only manage viewer accounts"
             )
 
         from app.domains.api_keys.models import ApiKey

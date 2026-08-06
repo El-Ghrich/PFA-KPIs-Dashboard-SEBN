@@ -1,8 +1,9 @@
 import asyncio
 from datetime import date
+import random
 from sqlalchemy import select
 from app.db.session import AsyncSessionLocal
-from app.domains.projects.models import Project, ProjectStatus
+from app.domains.projects.models import Project, ProjectSet, ProjectStatus
 from app.domains.kpis.models import KPIDefinition, KPIRecord, KpiType, RecordPeriod
 from app.domains.highlights.models import Highlight, HighlightStatus, HighlightPeriod
 from app.domains.users.models import User, UserRole
@@ -14,6 +15,9 @@ DEFINITIONS = [
     {"name": "Scrap Rate", "unit": "%", "kpi_type": KpiType.NUMERIC},
     {"name": "OEE", "unit": "%", "kpi_type": KpiType.NUMERIC},
     {"name": "Downtime", "unit": "hours", "kpi_type": KpiType.NUMERIC},
+    {"name": "Insertion rate cim-1", "unit": "%", "kpi_type": KpiType.NUMERIC},
+    {"name": "Insertion rate cim-2", "unit": "%", "kpi_type": KpiType.NUMERIC},
+    {"name": "Insertion rate cim-3", "unit": "%", "kpi_type": KpiType.NUMERIC},
 ]
 
 HIGHLIGHT_STATUS = {
@@ -39,25 +43,17 @@ HIGHLIGHT_STATUS = {
 
 
 PROJECTS = [
-    {"name": "MEB31", "location": "Morocco"},
-    {"name": "MEB21 HV", "location": "Morocco"},
-    {"name": "TIGUAN", "location": "Morocco"},
-    {"name": "MEB21 LV KSK", "location": "Morocco"},
-    {"name": "MEB21 LV AUTRAK", "location": "Morocco"},
-    {"name": "BMW", "location": "Mexico"},
+    {"name": "MEB31", "location": "Morocco", "sets": ["Set 1", "Set 2", "Set 3"]},
+    {"name": "MEB21 HV", "location": "Morocco", "sets": ["Set 1", "Set 2"]},
+    {"name": "TIGUAN", "location": "Morocco", "sets": ["Set 1", "Set 2", "Set 3", "Set 4"]},
+    {"name": "MEB21 LV KSK", "location": "Morocco", "sets": ["Set 1", "Set 2"]},
+    {"name": "MEB21 LV AUTRAK", "location": "Morocco", "sets": ["Set 1", "Set 2", "Set 3"]},
+    {"name": "BMW", "location": "Mexico", "sets": ["Set 1", "Set 2", "Set 3"]},
 ]
 
 USERS = [
     {"email": "superadmin@hcm.com", "full_name": "Super Admin", "role": UserRole.SUPER_ADMIN, "password": "superadmin123"},
     {"email": "admin@hcm.com", "full_name": "Admin User", "role": UserRole.ADMIN, "password": "admin123"},
-    {"email": "viewer@hcm.com", "full_name": "Viewer User", "role": UserRole.VIEWER, "password": "viewer123"},
-]
-
-DEFINITIONS = [
-    {"name": "Output", "unit": "units", "kpi_type": KpiType.NUMERIC},
-    {"name": "Scrap Rate", "unit": "%", "kpi_type": KpiType.NUMERIC},
-    {"name": "OEE", "unit": "%", "kpi_type": KpiType.NUMERIC},
-    {"name": "Downtime", "unit": "hours", "kpi_type": KpiType.NUMERIC},
 ]
 
 WEEKS = [
@@ -71,68 +67,16 @@ WEEKS = [
     {"iso_year": 2026, "iso_week": 34, "monday": date(2026, 8, 17)},
 ]
 
-PROJECT_WEEKLY_DATA = {
-    "MEB31": [
-        {"Output": 9200, "Scrap Rate": 1.5, "OEE": 82.0, "Downtime": 2.8, "Highlight": "Strong start, excellent OEE"},
-        {"Output": 8800, "Scrap Rate": 1.8, "OEE": 79.5, "Downtime": 3.2, "Highlight": "Slight dip due to material change"},
-        {"Output": 9500, "Scrap Rate": 1.3, "OEE": 84.0, "Downtime": 2.1, "Highlight": "Record output week"},
-        {"Output": 9100, "Scrap Rate": 1.6, "OEE": 81.0, "Downtime": 3.0, "Highlight": "Stable performance across shifts"},
-        {"Output": 8900, "Scrap Rate": 1.4, "OEE": 80.5, "Downtime": 2.5, "Highlight": "Minor maintenance completed"},
-        {"Output": 9300, "Scrap Rate": 1.7, "OEE": 82.5, "Downtime": 2.9, "Highlight": "New operator training ongoing"},
-        {"Output": 8600, "Scrap Rate": 2.0, "OEE": 78.0, "Downtime": 3.8, "Highlight": "Raw material quality issue"},
-        {"Output": 9000, "Scrap Rate": 1.5, "OEE": 81.5, "Downtime": 2.6, "Highlight": "Strong recovery, targets met"},
-    ],
-    "MEB21 HV": [
-        {"Output": 8500, "Scrap Rate": 1.8, "OEE": 78.5, "Downtime": 3.5, "Highlight": "Stable production, minor adjustments needed"},
-        {"Output": 7200, "Scrap Rate": 2.1, "OEE": 74.2, "Downtime": 5.2, "Highlight": "High scrap rate due to raw material defect"},
-        {"Output": 8900, "Scrap Rate": 1.5, "OEE": 81.0, "Downtime": 2.1, "Highlight": "Team performed well, OEE improved significantly"},
-        {"Output": 7800, "Scrap Rate": 1.9, "OEE": 76.8, "Downtime": 4.0, "Highlight": "Preventive maintenance performed"},
-        {"Output": 8200, "Scrap Rate": 1.7, "OEE": 79.3, "Downtime": 3.0, "Highlight": "Good week, all quality targets met"},
-        {"Output": 8000, "Scrap Rate": 1.6, "OEE": 78.0, "Downtime": 3.3, "Highlight": "Consistent throughput maintained"},
-        {"Output": 7600, "Scrap Rate": 2.2, "OEE": 75.5, "Downtime": 4.5, "Highlight": "Tooling wear detected, replacement scheduled"},
-        {"Output": 8400, "Scrap Rate": 1.4, "OEE": 80.2, "Downtime": 2.8, "Highlight": "End-of-month push, strong results"},
-    ],
-    "TIGUAN": [
-        {"Output": 6500, "Scrap Rate": 2.0, "OEE": 76.0, "Downtime": 4.0, "Highlight": "Ramp-up phase ongoing"},
-        {"Output": 6800, "Scrap Rate": 1.8, "OEE": 77.5, "Downtime": 3.5, "Highlight": "Process stabilization improving"},
-        {"Output": 6200, "Scrap Rate": 2.3, "OEE": 74.0, "Downtime": 4.8, "Highlight": "Cooling system issue resolved"},
-        {"Output": 7000, "Scrap Rate": 1.6, "OEE": 79.0, "Downtime": 3.0, "Highlight": "Best OEE so far this quarter"},
-        {"Output": 6700, "Scrap Rate": 1.9, "OEE": 76.8, "Downtime": 3.8, "Highlight": "Shift handover gaps identified"},
-        {"Output": 7100, "Scrap Rate": 1.5, "OEE": 80.0, "Downtime": 2.8, "Highlight": "Continuous improvement initiatives paying off"},
-        {"Output": 6400, "Scrap Rate": 2.1, "OEE": 75.0, "Downtime": 4.2, "Highlight": "Unexpected line stoppage"},
-        {"Output": 6900, "Scrap Rate": 1.7, "OEE": 78.2, "Downtime": 3.2, "Highlight": "Week-on-week improvement sustained"},
-    ],
-    "MEB21 LV KSK": [
-        {"Output": 4800, "Scrap Rate": 2.5, "OEE": 72.0, "Downtime": 5.0, "Highlight": "Line balancing in progress"},
-        {"Output": 5100, "Scrap Rate": 2.2, "OEE": 73.5, "Downtime": 4.5, "Highlight": "Minor process adjustment completed"},
-        {"Output": 4600, "Scrap Rate": 2.8, "OEE": 70.0, "Downtime": 5.8, "Highlight": "Conveyor belt fault caused delay"},
-        {"Output": 5200, "Scrap Rate": 2.0, "OEE": 75.0, "Downtime": 4.0, "Highlight": "Recovery plan implemented"},
-        {"Output": 4900, "Scrap Rate": 2.3, "OEE": 72.5, "Downtime": 4.8, "Highlight": "Quality check frequency increased"},
-        {"Output": 5300, "Scrap Rate": 1.9, "OEE": 76.0, "Downtime": 3.5, "Highlight": "Best production week for this line"},
-        {"Output": 4700, "Scrap Rate": 2.6, "OEE": 71.0, "Downtime": 5.2, "Highlight": "Staff shortage impact"},
-        {"Output": 5000, "Scrap Rate": 2.1, "OEE": 73.8, "Downtime": 4.2, "Highlight": "Stable end to the period"},
-    ],
-    "MEB21 LV AUTRAK": [
-        {"Output": 3500, "Scrap Rate": 3.0, "OEE": 68.0, "Downtime": 6.0, "Highlight": "New line commissioning challenges"},
-        {"Output": 3800, "Scrap Rate": 2.7, "OEE": 70.0, "Downtime": 5.2, "Highlight": "Process parameter tuning underway"},
-        {"Output": 3400, "Scrap Rate": 3.2, "OEE": 66.5, "Downtime": 6.5, "Highlight": "Sensor calibration issues"},
-        {"Output": 4000, "Scrap Rate": 2.5, "OEE": 72.0, "Downtime": 4.5, "Highlight": "Improvement after calibration"},
-        {"Output": 3700, "Scrap Rate": 2.8, "OEE": 69.5, "Downtime": 5.5, "Highlight": "Operator training sessions held"},
-        {"Output": 4100, "Scrap Rate": 2.3, "OEE": 73.0, "Downtime": 4.0, "Highlight": "Gradual ramp-up continues"},
-        {"Output": 3600, "Scrap Rate": 3.1, "OEE": 67.5, "Downtime": 5.8, "Highlight": "Material shortage affected output"},
-        {"Output": 3900, "Scrap Rate": 2.6, "OEE": 70.8, "Downtime": 5.0, "Highlight": "End of period assessment positive"},
-    ],
-    "BMW": [
-        {"Output": 7500, "Scrap Rate": 1.9, "OEE": 77.0, "Downtime": 3.8, "Highlight": "Mexico plant ramping steadily"},
-        {"Output": 7800, "Scrap Rate": 1.7, "OEE": 78.5, "Downtime": 3.2, "Highlight": "Local workforce fully trained"},
-        {"Output": 7200, "Scrap Rate": 2.1, "OEE": 75.0, "Downtime": 4.2, "Highlight": "Supply chain disruption"},
-        {"Output": 8000, "Scrap Rate": 1.5, "OEE": 80.0, "Downtime": 2.8, "Highlight": "Production milestone achieved"},
-        {"Output": 7700, "Scrap Rate": 1.8, "OEE": 77.8, "Downtime": 3.5, "Highlight": "Consistent quality maintained"},
-        {"Output": 8100, "Scrap Rate": 1.4, "OEE": 81.0, "Downtime": 2.5, "Highlight": "Record OEE for Mexico plant"},
-        {"Output": 7400, "Scrap Rate": 2.0, "OEE": 76.0, "Downtime": 4.0, "Highlight": "Preventive maintenance week"},
-        {"Output": 7900, "Scrap Rate": 1.6, "OEE": 79.2, "Downtime": 3.0, "Highlight": "Strong finish, targets achieved"},
-    ],
-}
+BASE_WEEKLY_DATA = [
+    {"Output": 9200, "Scrap Rate": 1.5, "OEE": 82.0, "Downtime": 2.8, "Highlight": "Strong start, excellent OEE"},
+    {"Output": 8800, "Scrap Rate": 1.8, "OEE": 79.5, "Downtime": 3.2, "Highlight": "Slight dip due to material change"},
+    {"Output": 9500, "Scrap Rate": 1.3, "OEE": 84.0, "Downtime": 2.1, "Highlight": "Record output week"},
+    {"Output": 9100, "Scrap Rate": 1.6, "OEE": 81.0, "Downtime": 3.0, "Highlight": "Stable performance across shifts"},
+    {"Output": 8900, "Scrap Rate": 1.4, "OEE": 80.5, "Downtime": 2.5, "Highlight": "Minor maintenance completed"},
+    {"Output": 9300, "Scrap Rate": 1.7, "OEE": 82.5, "Downtime": 2.9, "Highlight": "New operator training ongoing"},
+    {"Output": 8600, "Scrap Rate": 2.0, "OEE": 78.0, "Downtime": 3.8, "Highlight": "Raw material quality issue"},
+    {"Output": 9000, "Scrap Rate": 1.5, "OEE": 81.5, "Downtime": 2.6, "Highlight": "Strong recovery, targets met"},
+]
 
 
 async def seed():
@@ -182,34 +126,76 @@ async def seed():
             else:
                 print(f"Project already exists: {proj_info['name']}")
 
-            project_data = PROJECT_WEEKLY_DATA[proj_info["name"]]
-
-            for week_idx, week in enumerate(WEEKS):
-                data = project_data[week_idx]
-
-                existing_record = await session.execute(
-                    select(KPIRecord).where(
-                        KPIRecord.project_id == project.id,
-                        KPIRecord.kpi_id == def_map["Output"].id,
-                        KPIRecord.record_date == week["monday"],
-                        KPIRecord.period == RecordPeriod.WEEKLY,
+            # Seed Sets for this project
+            set_map = {}
+            for set_name in proj_info["sets"]:
+                existing_set = await session.execute(
+                    select(ProjectSet).where(
+                        ProjectSet.project_id == project.id,
+                        ProjectSet.name == set_name
                     )
                 )
-                if not existing_record.scalars().first():
-                    records = []
-                    for def_name, definition in def_map.items():
-                        record = KPIRecord(
-                            project_id=project.id,
-                            kpi_id=definition.id,
-                            record_date=week["monday"],
-                            period=RecordPeriod.WEEKLY,
-                            numeric_value=float(data[def_name]),
-                        )
-                        records.append(record)
-
-                    session.add_all(records)
+                pset = existing_set.scalar_one_or_none()
+                if not pset:
+                    pset = ProjectSet(project_id=project.id, name=set_name)
+                    session.add(pset)
                     await session.flush()
+                    print(f"  Created set: {set_name} for {project.name}")
+                set_map[set_name] = pset
 
+            # Seed weekly data per set
+            for set_name, pset in set_map.items():
+                for week_idx, week in enumerate(WEEKS):
+                    base_data = BASE_WEEKLY_DATA[week_idx]
+                    # Add slight variation per set
+                    set_multiplier = 0.9 + (hash(set_name + str(week_idx)) % 20) / 100.0
+
+                    output_val = round(base_data["Output"] * set_multiplier)
+                    scrap_val = round(base_data["Scrap Rate"] * set_multiplier, 1)
+                    oee_val = min(100.0, round(base_data["OEE"] * set_multiplier, 1))
+                    downtime_val = round(base_data["Downtime"] * set_multiplier, 1)
+                    ins1_val = round(random.uniform(75, 90), 1)
+                    ins2_val = round(random.uniform(75, 90), 1)
+                    ins3_val = round(random.uniform(75, 90), 1)
+
+                    kpi_values = {
+                        "Output": output_val,
+                        "Scrap Rate": scrap_val,
+                        "OEE": oee_val,
+                        "Downtime": downtime_val,
+                        "Insertion rate cim-1": ins1_val,
+                        "Insertion rate cim-2": ins2_val,
+                        "Insertion rate cim-3": ins3_val,
+                    }
+
+                    existing_record = await session.execute(
+                        select(KPIRecord).where(
+                            KPIRecord.project_id == project.id,
+                            KPIRecord.set_id == pset.id,
+                            KPIRecord.kpi_id == def_map["Output"].id,
+                            KPIRecord.record_date == week["monday"],
+                            KPIRecord.period == RecordPeriod.WEEKLY,
+                        )
+                    )
+                    if not existing_record.scalars().first():
+                        records = []
+                        for def_name, definition in def_map.items():
+                            record = KPIRecord(
+                                project_id=project.id,
+                                set_id=pset.id,
+                                kpi_id=definition.id,
+                                record_date=week["monday"],
+                                period=RecordPeriod.WEEKLY,
+                                numeric_value=float(kpi_values[def_name]),
+                            )
+                            records.append(record)
+
+                        session.add_all(records)
+                        await session.flush()
+
+            # Seed project-level highlights per week
+            for week_idx, week in enumerate(WEEKS):
+                base_data = BASE_WEEKLY_DATA[week_idx]
                 existing_highlight = await session.execute(
                     select(Highlight).where(
                         Highlight.project_id == project.id,
@@ -218,22 +204,21 @@ async def seed():
                     )
                 )
                 highlight = existing_highlight.scalars().first()
-                status = HIGHLIGHT_STATUS.get(data["Highlight"], HighlightStatus.GOOD)
+                status = HIGHLIGHT_STATUS.get(base_data["Highlight"], HighlightStatus.GOOD)
                 if highlight:
-                    highlight.value = data["Highlight"]
+                    highlight.value = base_data["Highlight"]
                     highlight.status = status
                 else:
                     session.add(Highlight(
                         project_id=project.id,
                         record_date=week["monday"],
                         period=HighlightPeriod.WEEKLY,
-                        value=data["Highlight"],
+                        value=base_data["Highlight"],
                         status=status,
                     ))
-
                 await session.flush()
 
-            print(f"Seeded {len(WEEKS)} weeks for {proj_info['name']}")
+            print(f"Seeded {len(WEEKS)} weeks across {len(set_map)} sets for {proj_info['name']}")
 
         await session.commit()
         print("\nSeeding complete!")

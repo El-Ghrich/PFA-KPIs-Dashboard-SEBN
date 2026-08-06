@@ -8,6 +8,7 @@ import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { Dropdown } from '../components/ui/Dropdown'
 import { EmptyState } from '../components/ui/EmptyState'
+import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { Copy, Ban, Trash2 } from 'lucide-react'
 import type { ApiKey, ApiKeyCreated } from '../types'
 
@@ -31,6 +32,11 @@ function defaultExpiry(): string {
   return local.toISOString().slice(0, 16)
 }
 
+type ConfirmState =
+  | { type: 'delete'; key: ApiKey }
+  | { type: 'revoke'; key: ApiKey }
+  | null
+
 export default function ApiKeyManagement() {
   const { user: currentUser } = useAuth()
   const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN'
@@ -42,6 +48,7 @@ export default function ApiKeyManagement() {
   const [created, setCreated] = useState<ApiKeyCreated | null>(null)
   const [copied, setCopied] = useState(false)
   const [showInactive, setShowInactive] = useState(false)
+  const [confirm, setConfirm] = useState<ConfirmState>(null)
 
   const keysQuery = useQuery({ queryKey: ['api-keys'], queryFn: () => apiKeysApi.list() })
   const keys = keysQuery.data ?? []
@@ -71,19 +78,27 @@ export default function ApiKeyManagement() {
 
   const revokeMutation = useMutation({
     mutationFn: (id: string) => apiKeysApi.revoke(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['api-keys'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['api-keys'] })
+      setConfirm(null)
+    },
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiKeysApi.remove(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['api-keys'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['api-keys'] })
+      setConfirm(null)
+    },
   })
 
-  const handleDelete = (key: ApiKey) => {
-    if (window.confirm(`Delete API key "${key.name}"? This is a soft delete — the key is kept but disabled.`)) {
-      deleteMutation.mutate(key.id)
-    }
+  const handleConfirmAction = () => {
+    if (!confirm) return
+    if (confirm.type === 'delete') deleteMutation.mutate(confirm.key.id)
+    else if (confirm.type === 'revoke') revokeMutation.mutate(confirm.key.id)
   }
+
+  const isConfirmLoading = deleteMutation.isPending || revokeMutation.isPending
 
   const visibleKeys = showInactive ? keys : keys.filter(k => k.status === 'ACTIVE')
 
@@ -102,7 +117,7 @@ export default function ApiKeyManagement() {
   return (
     <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="max-w-[1440px] mx-auto w-full px-8 py-8">
+        <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-8 py-6 sm:py-8">
           <header className="mb-6">
             <h1 className="text-2xl font-semibold text-on-surface">API Key Management</h1>
             <p className="text-sm text-on-surface-variant mt-1">
@@ -183,16 +198,16 @@ export default function ApiKeyManagement() {
                       </span>
                       {key.status === 'ACTIVE' && (
                         <button
-                          onClick={() => revokeMutation.mutate(key.id)}
+                          onClick={() => setConfirm({ type: 'revoke', key })}
                           title="Revoke key"
-                          className="p-2 text-on-surface-variant/50 hover:text-error transition-colors"
+                          className="p-2 text-on-surface-variant/50 hover:text-alert transition-colors"
                         >
                           <Ban className="w-4 h-4" />
                         </button>
                       )}
                       {key.status !== 'DELETED' && (
                         <button
-                          onClick={() => handleDelete(key)}
+                          onClick={() => setConfirm({ type: 'delete', key })}
                           title="Delete key"
                           className="p-2 text-on-surface-variant/50 hover:text-error transition-colors"
                         >
@@ -207,6 +222,26 @@ export default function ApiKeyManagement() {
           )}
         </div>
       </div>
+
+      {/* ── Confirmation modal ─────────────────────────────── */}
+      <ConfirmModal
+        open={confirm !== null}
+        variant={confirm?.type === 'delete' ? 'delete' : 'revoke'}
+        title={
+          confirm?.type === 'delete'
+            ? `Delete "${confirm.key.name}"?`
+            : `Revoke "${confirm?.key.name}"?`
+        }
+        description={
+          confirm?.type === 'delete'
+            ? 'This performs a soft delete — the key will be disabled and can no longer be used for authentication.'
+            : 'Revoking this key will immediately invalidate it. Any service relying on it will lose access.'
+        }
+        confirmLabel={confirm?.type === 'delete' ? 'Delete key' : 'Revoke key'}
+        loading={isConfirmLoading}
+        onConfirm={handleConfirmAction}
+        onCancel={() => setConfirm(null)}
+      />
     </main>
   )
 }

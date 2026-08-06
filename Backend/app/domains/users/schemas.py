@@ -11,7 +11,6 @@ from enum import Enum
 class UserRoleEnum(str, Enum):
     SUPER_ADMIN = "SUPER_ADMIN"
     ADMIN = "ADMIN"
-    VIEWER = "VIEWER"
 
 
 # ==========================================
@@ -30,8 +29,8 @@ class UserBase(BaseModel):
         description="User's full name"
     )
     role: UserRoleEnum = Field(
-        default=UserRoleEnum.VIEWER,
-        description="User role: SUPER_ADMIN, ADMIN or VIEWER"
+        default=UserRoleEnum.ADMIN,
+        description="User role: SUPER_ADMIN or ADMIN"
     )
 
 

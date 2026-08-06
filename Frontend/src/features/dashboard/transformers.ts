@@ -7,7 +7,9 @@ export interface WeekDataPoint {
   output: number | null
   scrapRate: number | null
   oee: number | null
-  downtime: number | null
+  insertion1: number | null
+  insertion2: number | null
+  insertion3: number | null
 }
 
 export interface KpiDisplay {
@@ -38,7 +40,9 @@ export function groupRecords(records: KPIRecord[]): WeekDataPoint[] {
       output: values.get(KPI_LABELS[0]) ?? null,
       scrapRate: values.get(KPI_LABELS[1]) ?? null,
       oee: values.get(KPI_LABELS[2]) ?? null,
-      downtime: values.get(KPI_LABELS[3]) ?? null,
+      insertion1: values.get(KPI_LABELS[3]) ?? null,
+      insertion2: values.get(KPI_LABELS[4]) ?? null,
+      insertion3: values.get(KPI_LABELS[5]) ?? null,
     }))
 }
 
@@ -50,7 +54,7 @@ export function computeKpis(
   const selected = weekData.find(w => weekNumberFromLabel(w.weekLabel) === week) ?? weekData[weekData.length - 1]
 
   if (!selected) {
-    return { kpiList: null, compareDiffValues: [null, null, null, null] }
+    return { kpiList: null, compareDiffValues: [null, null, null, null, null, null] }
   }
 
   const compare = compareWeek ? weekData.find(w => weekNumberFromLabel(w.weekLabel) === compareWeek) : null
@@ -72,7 +76,9 @@ export function computeKpis(
     calc(selected.output, prev?.output ?? null, 'units'),
     calc(selected.scrapRate, prev?.scrapRate ?? null, '%', true),
     calc(selected.oee, prev?.oee ?? null, '%'),
-    calc(selected.downtime, prev?.downtime ?? null, 'hrs', true),
+    calc(selected.insertion1, prev?.insertion1 ?? null, '%'),
+    calc(selected.insertion2, prev?.insertion2 ?? null, '%'),
+    calc(selected.insertion3, prev?.insertion3 ?? null, '%'),
   ]
 
   return { kpiList: kpis, compareDiffValues: kpis.map(k => formatDiff(k.diff)) }
@@ -90,7 +96,7 @@ export function buildChartWeekData(allWeekData: WeekDataPoint[], selectedWeek: n
   for (let i = count - 1; i >= 0; i--) {
     const wn = selectedWeek - i
     if (wn < 1) continue
-    result.push(dataMap.get(wn) ?? { weekLabel: weekLabelFromNumber(wn), output: null, scrapRate: null, oee: null, downtime: null })
+    result.push(dataMap.get(wn) ?? { weekLabel: weekLabelFromNumber(wn), output: null, scrapRate: null, oee: null, insertion1: null, insertion2: null, insertion3: null })
   }
   return result
 }

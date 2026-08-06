@@ -1,9 +1,17 @@
+export interface ProjectSet {
+  id: string
+  project_id: string
+  name: string
+  created_at: string
+}
+
 export interface Project {
   id: string
   name: string
   status: 'ACTIVE' | 'COMPLETED' | 'SUSPENDED'
   location: string | null
   created_at: string
+  sets: ProjectSet[]
 }
 
 export interface KPIDefinition {
@@ -42,7 +50,7 @@ export interface User {
   id: string
   email: string
   full_name: string
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'VIEWER'
+  role: 'SUPER_ADMIN' | 'ADMIN'
   created_at: string
 }
 
@@ -89,5 +97,5 @@ export interface FilterState {
   year: number
   week: number
   compareWeek: number | null
-  machine: string
+  setId: string
 }

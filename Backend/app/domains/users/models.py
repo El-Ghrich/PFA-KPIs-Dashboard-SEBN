@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 class UserRole(str, enum.Enum):
     SUPER_ADMIN = "SUPER_ADMIN"
     ADMIN = "ADMIN"
-    VIEWER = "VIEWER"
 
     @classmethod
     def _missing_(cls, value):
@@ -55,7 +54,7 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole),
         nullable=False,
-        default=UserRole.VIEWER
+        default=UserRole.ADMIN
     )
 
     created_at: Mapped[datetime] = mapped_column(

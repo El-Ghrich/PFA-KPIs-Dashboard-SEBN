@@ -42,6 +42,8 @@ class KPIRecord(Base):
     record_date: Mapped[date] = mapped_column(Date, nullable=False)
     period: Mapped[RecordPeriod] = mapped_column(Enum(RecordPeriod), nullable=False)
 
+    set_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("project_sets.id", ondelete="CASCADE"), nullable=True)
+
     numeric_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     asset_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -52,10 +54,12 @@ class KPIRecord(Base):
 
     kpi_definition: Mapped["KPIDefinition"] = relationship(back_populates="records")
     project: Mapped["Project"] = relationship(back_populates="kpi_records")
+    set: Mapped[Optional["ProjectSet"]] = relationship(back_populates="kpi_records")
     creator: Mapped[Optional["User"]] = relationship(back_populates="kpi_records")
     api_key: Mapped[Optional["ApiKey"]] = relationship()
 
 
 from app.domains.users.models import User  # noqa: E402, F811
-from app.domains.projects.models import Project  # noqa: E402, F811
+from app.domains.projects.models import Project, ProjectSet  # noqa: E402, F811
 from app.domains.api_keys.models import ApiKey
+

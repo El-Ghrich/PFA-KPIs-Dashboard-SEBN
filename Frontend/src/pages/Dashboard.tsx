@@ -12,7 +12,6 @@ import { buildDefaultFilters } from '../features/dashboard/filters'
 import { useDashboardData } from '../features/dashboard/useDashboardData'
 import { buildChartWeekData, computeKpis, groupRecords, splitHighlights } from '../features/dashboard/transformers'
 import type { FilterState } from '../types'
-import { tokenStorage } from '../lib/tokenStorage'
 
 export default function Dashboard() {
   const [filters, setFilters] = useState<FilterState>(() => buildDefaultFilters([]))
@@ -21,56 +20,25 @@ export default function Dashboard() {
   const [projectsError, setProjectsError] = useState<Error | null>(null)
   const isDesktop = useBreakpoint(BREAKPOINT_DESKTOP)
 
-  // Fetch projects normally
+  // Fetch projects on mount — no token check, API is public for the dashboard
   useEffect(() => {
+    let cancelled = false
+
     const fetchProjects = async () => {
-      const token = tokenStorage.getAccessToken()
-
-      if (!token) {
-        setIsProjectsLoading(false)
-        return
-      }
-
       setIsProjectsLoading(true)
       setProjectsError(null)
-
       try {
         const result = await projectsApi.list(1, 100)
-        setProjects(result.items || [])
+        if (!cancelled) setProjects(result.items || [])
       } catch (error) {
-        setProjectsError(error as Error)
+        if (!cancelled) setProjectsError(error as Error)
       } finally {
-        setIsProjectsLoading(false)
+        if (!cancelled) setIsProjectsLoading(false)
       }
     }
 
     fetchProjects()
-  }, []) // Run once on mount
-
-  // Also refetch when token changes (e.g., after login)
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'access_token' || e.key === null) {
-        const fetchProjects = async () => {
-          const token = tokenStorage.getAccessToken()
-          if (!token) {
-            setProjects([])
-            return
-          }
-
-          try {
-            const result = await projectsApi.list(1, 100)
-            setProjects(result.items || [])
-          } catch (error) {
-            console.error('Projects refetch failed:', error)
-          }
-        }
-        fetchProjects()
-      }
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
@@ -101,12 +69,11 @@ export default function Dashboard() {
 
   const projectName = projects.find(p => p.id === filters.projectId)?.name || ''
 
-  // Show loading state while projects are being fetched
   if (isProjectsLoading) {
     return (
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="max-w-[1440px] mx-auto w-full px-8 py-8">
+          <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-8 py-6 sm:py-8">
             <EmptyState className="h-64" message="Loading projects..." />
           </div>
         </div>
@@ -114,15 +81,14 @@ export default function Dashboard() {
     )
   }
 
-  // Show error state if projects fetch failed
   if (projectsError) {
     return (
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="max-w-[1440px] mx-auto w-full px-8 py-8">
-            <EmptyState 
-              className="h-64" 
-              message={`Failed to load projects: ${projectsError.message}`} 
+          <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-8 py-6 sm:py-8">
+            <EmptyState
+              className="h-64"
+              message={`Failed to load dashboard data: ${projectsError.message}`}
             />
           </div>
         </div>
@@ -133,7 +99,7 @@ export default function Dashboard() {
   return (
     <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="max-w-[1440px] mx-auto w-full px-8 py-8">
+        <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-8 py-6 sm:py-8">
           <DashboardHeader
             title="HCM-S Weekly Highlights"
             subtitle="Overview of performance and key highlights for the selected week and project"
@@ -148,7 +114,7 @@ export default function Dashboard() {
 
           <DashboardToolbar
             projectName={projectName}
-            machine={filters.machine}
+            setName={projects.find(p => p.id === filters.projectId)?.sets?.find((s: { id: string; name: string }) => s.id === filters.setId)?.name}
             year={filters.year}
             week={filters.week}
             compareWeek={filters.compareWeek}

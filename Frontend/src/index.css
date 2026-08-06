@@ -102,3 +102,23 @@ body {
 ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 3px; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Modal animations */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes zoom-in-95 {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-in {
+  animation-fill-mode: both;
+  animation-duration: 200ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fade-in    { animation-name: fade-in; }
+.zoom-in-95 { animation-name: zoom-in-95; }
+.duration-200 { animation-duration: 200ms; }
+

@@ -5,14 +5,14 @@ export interface UserCreateInput {
   email: string
   full_name: string
   password: string
-  role: 'ADMIN' | 'VIEWER'
+  role: 'ADMIN'
 }
 
 export interface UserPatchInput {
   email?: string
   full_name?: string
   password?: string
-  role?: 'ADMIN' | 'VIEWER'
+  role?: 'ADMIN'
 }
 
 export const usersApi = {

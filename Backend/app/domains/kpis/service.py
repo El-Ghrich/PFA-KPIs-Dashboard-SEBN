@@ -191,12 +191,16 @@ class KPIService:
         iso_year: int | None = None,
         iso_week: int | None = None,
         kpi_id: str | None = None,
+        set_id: str | None = None,
     ) -> Sequence[KPIRecord]:
         query = (
             select(KPIRecord)
             .where(KPIRecord.project_id == project_id)
             .options(joinedload(KPIRecord.kpi_definition))
         )
+
+        if set_id:
+            query = query.where(KPIRecord.set_id == set_id)
 
         if period:
             query = query.where(KPIRecord.period == period)
