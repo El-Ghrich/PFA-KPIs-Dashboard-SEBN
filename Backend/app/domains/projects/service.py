@@ -85,7 +85,11 @@ class ProjectService:
         )
         
         if include_kpis:
+            # Use joinedload for full eager loading when caller explicitly wants KPIs
             query = query.options(joinedload(Project.kpi_records))
+        else:
+            # Always eager-load so the response model can serialise kpi_records as []
+            query = query.options(selectinload(Project.kpi_records))
             
         result = await session.execute(query)
         project = result.scalars().first()

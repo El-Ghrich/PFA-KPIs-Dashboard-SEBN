@@ -15,7 +15,7 @@ export interface ProjectUpdatePayload {
 }
 
 export const projectsApi = {
-  list: (page = 1, pageSize = 100, location?: string) => {
+  list: (page = 1, pageSize = 10, location?: string) => {
     const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
     if (location && location !== 'All') params.set('location', location)
     return client.get<Paginated<Project>>(`/projects?${params}`).then((r) => r.data)

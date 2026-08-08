@@ -60,3 +60,19 @@ dependencies = [
     "watchfiles==1.2.0",
     "websockets==16.1.1",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/seed.py", "*/migrations/*", "*/alembic/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false

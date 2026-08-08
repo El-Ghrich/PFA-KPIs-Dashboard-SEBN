@@ -34,7 +34,7 @@ async def create_project(
 @router.get("", response_model=ProjectListResponse)
 async def list_projects(
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(100, ge=1, le=500, description="Number of items per page"),
+    page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
     location: str | None = Query(None, description="Filter by location"),
     db: AsyncSession = Depends(get_db)
 ):

@@ -11,7 +11,7 @@ from app.domains.kpis.schemas import (
 )
 from app.domains.kpis.service import KPIService
 from app.api.dependencies import (
-    require_write_access, require_admin, UserSession
+    get_current_user, require_write_access, require_admin, UserSession
 )
 
 router = APIRouter()
@@ -33,8 +33,8 @@ async def create_kpi_definition(
 @router.get("/definitions", response_model=list[KPIDefinitionResponse])
 async def list_kpi_definitions(
     db: AsyncSession = Depends(get_db),
+    # _: UserSession = Depends(get_current_user)
 ):
-    """Public endpoint — returns all KPI definitions."""
     return await KPIService.get_definitions(session=db)
 
 
@@ -55,8 +55,8 @@ async def create_kpi_record(
 async def get_kpi_record(
     record_id: str,
     db: AsyncSession = Depends(get_db),
+    # _: UserSession = Depends(get_current_user)
 ):
-    """Public endpoint — fetch a single KPI record by ID."""
     return await KPIService.get_record(session=db, record_id=record_id)
 
 
@@ -104,12 +104,10 @@ async def list_project_kpi_records(
     iso_year: int | None = Query(None, description="ISO year (e.g. 2026)"),
     iso_week: int | None = Query(None, description="ISO week number (1-53)"),
     kpi_id: str | None = Query(None, description="Filter by KPI definition ID"),
-    set_id: str | None = Query(None, description="Filter by Project Set ID"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Public endpoint — returns KPI records for a project."""
     return await KPIService.get_project_records(
         session=db, project_id=project_id,
         period=period, iso_year=iso_year, iso_week=iso_week,
-        kpi_id=kpi_id, set_id=set_id,
+        kpi_id=kpi_id,
     )
