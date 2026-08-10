@@ -3,6 +3,8 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
+  BarController,
+  LineController,
   BarElement,
   LineElement,
   PointElement,
@@ -17,7 +19,18 @@ import {
 import { Card } from './ui/Card'
 import { CHART_TARGET } from '../lib/constants'
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend, Filler)
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarController,
+  LineController,
+  BarElement,
+  LineElement,
+  PointElement,
+  Tooltip,
+  Legend,
+  Filler,
+)
 
 type MixedChart = 'bar' | 'line'
 type MixedData = ChartData<MixedChart, (number | null)[], string>
