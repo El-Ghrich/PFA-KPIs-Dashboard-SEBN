@@ -29,6 +29,7 @@ class TestUserCreateSchema:
         user = UserCreate(**self._valid_payload())
         assert user.email == "user@example.com"
         assert user.role == UserRoleEnum.ADMIN
+        assert user.full_name == "Alice Bob"
 
     def test_password_too_short_raises(self):
         with pytest.raises(ValidationError) as exc_info:

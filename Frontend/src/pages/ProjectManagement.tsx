@@ -6,6 +6,8 @@ import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { Dropdown } from '../components/ui/Dropdown'
 import { EmptyState } from '../components/ui/EmptyState'
+import { ErrorState } from '../components/ui/ErrorState'
+import { useToast } from '../contexts/ToastContext'
 import { Modal } from '../components/ui/Modal'
 import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { LOCATIONS } from '../lib/constants'
@@ -14,6 +16,7 @@ import type { Project, ProjectSet } from '../types'
 
 export default function ProjectManagement() {
   const queryClient = useQueryClient()
+  const { showSuccess, showError } = useToast()
   const [locationFilter, setLocationFilter] = useState('All')
 
   // Modals state
@@ -38,7 +41,7 @@ export default function ProjectManagement() {
   const [deletingSet, setDeletingSet] = useState<{ project: Project; set: ProjectSet } | null>(null)
 
   // Fetch projects query
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['projects', locationFilter],
     queryFn: () => projectsApi.list(1, 100, locationFilter),
   })
@@ -52,12 +55,14 @@ export default function ProjectManagement() {
       initial_sets_count: initialSetsCount,
     }),
     onSuccess: () => {
+      showSuccess(`Project "${projectName}" created successfully!`)
       setIsAddProjectOpen(false)
       setProjectName('')
       setProjectLocation('Morocco')
       setInitialSetsCount(2)
       queryClient.invalidateQueries({ queryKey: ['projects'] })
     },
+    onError: (err) => showError(err, 'Failed to Create Project'),
   })
 
   // Edit Project mutation
@@ -70,9 +75,11 @@ export default function ProjectManagement() {
       })
     },
     onSuccess: () => {
+      showSuccess('Project updated successfully!')
       setEditingProject(null)
       queryClient.invalidateQueries({ queryKey: ['projects'] })
     },
+    onError: (err) => showError(err, 'Failed to Update Project'),
   })
 
   // Soft Delete Project mutation
@@ -82,9 +89,11 @@ export default function ProjectManagement() {
       return projectsApi.softDelete(deletingProject.id)
     },
     onSuccess: () => {
+      showSuccess('Project deleted successfully!')
       setDeletingProject(null)
       queryClient.invalidateQueries({ queryKey: ['projects'] })
     },
+    onError: (err) => showError(err, 'Failed to Delete Project'),
   })
 
   // Add Set mutation
@@ -94,10 +103,12 @@ export default function ProjectManagement() {
       return projectsApi.addSet(addingSetToProject.id, newSetName.trim())
     },
     onSuccess: () => {
+      showSuccess(`Set "${newSetName}" added successfully!`)
       setAddingSetToProject(null)
       setNewSetName('')
       queryClient.invalidateQueries({ queryKey: ['projects'] })
     },
+    onError: (err) => showError(err, 'Failed to Add Set'),
   })
 
   // Edit Set mutation
@@ -107,9 +118,11 @@ export default function ProjectManagement() {
       return projectsApi.updateSet(editingSet.project.id, editingSet.set.id, editSetName.trim())
     },
     onSuccess: () => {
+      showSuccess('Set updated successfully!')
       setEditingSet(null)
       queryClient.invalidateQueries({ queryKey: ['projects'] })
     },
+    onError: (err) => showError(err, 'Failed to Update Set'),
   })
 
   // Delete Set mutation
@@ -119,15 +132,18 @@ export default function ProjectManagement() {
       return projectsApi.softDeleteSet(deletingSet.project.id, deletingSet.set.id)
     },
     onSuccess: () => {
+      showSuccess('Set deleted successfully!')
       setDeletingSet(null)
       queryClient.invalidateQueries({ queryKey: ['projects'] })
     },
+    onError: (err) => showError(err, 'Failed to Delete Set'),
   })
 
   return (
     <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-8 py-6 sm:py-8">
+
 
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -166,7 +182,9 @@ export default function ProjectManagement() {
           </Card>
 
           {/* Projects Grid */}
-          {isLoading ? (
+          {isError ? (
+            <ErrorState error={error} onRetry={refetch} />
+          ) : isLoading ? (
             <EmptyState className="h-64" message="Loading projects..." />
           ) : projects.length === 0 ? (
             <EmptyState className="h-64" message="No projects found for the selected location" />

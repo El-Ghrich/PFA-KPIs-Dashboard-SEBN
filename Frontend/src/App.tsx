@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { SidebarProvider } from './contexts/SidebarContext'
+import { ToastProvider } from './contexts/ToastContext'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
 import Login from './pages/Login'
@@ -54,6 +56,12 @@ function AdminRequired({ children }: { children: ReactNode }) {
   return <Navigate to="/" replace />
 }
 
+function SuperAdminRequired({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
+  if (user && user.role === 'SUPER_ADMIN') return <>{children}</>
+  return <Navigate to="/" replace />
+}
+
 // Dynamic route for "/" dashboard — renders AdminLayout if logged in, PublicLayout if guest
 function DashboardRoute() {
   const { user, loading } = useAuth()
@@ -79,26 +87,32 @@ function DashboardRoute() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          {/* ── Dashboard: shows AdminLayout if logged in, PublicLayout if guest ── */}
-          <Route path="/" element={<DashboardRoute />} />
+    <ErrorBoundary>
+      <ToastProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              {/* ── Dashboard: shows AdminLayout if logged in, PublicLayout if guest ── */}
+              <Route path="/" element={<DashboardRoute />} />
 
-          {/* ── Auth: login page ── */}
-          <Route path="/login" element={<Login />} />
+              {/* ── Auth: login page ── */}
+              <Route path="/login" element={<Login />} />
 
-          {/* ── Auth-required: admin pages ── */}
-          <Route element={<AuthRequired><AdminLayout /></AuthRequired>}>
-            <Route path="/entry" element={<AdminRequired><WeeklyEntry /></AdminRequired>} />
-            <Route path="/projects" element={<AdminRequired><ProjectManagement /></AdminRequired>} />
-            <Route path="/users" element={<AdminRequired><UserManagement /></AdminRequired>} />
-            <Route path="/api-keys" element={<AdminRequired><ApiKeyManagement /></AdminRequired>} />
-          </Route>
+              {/* ── Auth-required: admin pages ── */}
+              <Route element={<AuthRequired><AdminLayout /></AuthRequired>}>
+                <Route path="/entry" element={<AdminRequired><WeeklyEntry /></AdminRequired>} />
+                <Route path="/projects" element={<AdminRequired><ProjectManagement /></AdminRequired>} />
+                <Route path="/users" element={<SuperAdminRequired><UserManagement /></SuperAdminRequired>} />
+                <Route path="/api-keys" element={<AdminRequired><ApiKeyManagement /></AdminRequired>} />
+              </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </ToastProvider>
+    </ErrorBoundary>
   )
 }
+
+

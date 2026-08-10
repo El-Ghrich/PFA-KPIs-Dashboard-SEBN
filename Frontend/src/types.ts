@@ -99,3 +99,17 @@ export interface FilterState {
   compareWeek: number | null
   setId: string
 }
+
+export interface KeyTakeaway {
+  id: string
+  project_id: string
+  content: string
+  created_by: string | null
+  created_at: string
+}
+
+export interface KeyTakeawayListResponse {
+  items: KeyTakeaway[]
+  total: number
+}
+

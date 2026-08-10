@@ -22,19 +22,16 @@ class TestSignup:
         }
         return {**base, **overrides}
 
-    async def test_admin_can_create_admin(self, client, auth_headers):
+    async def test_admin_cannot_create_admin(self, client, auth_headers):
         resp = await client.post("/api/v1/auth/signup", json=self._payload(), headers=auth_headers)
-        assert resp.status_code == 201
-        body = resp.json()
-        assert body["email"] == "newadmin@test.com"
-        assert body["role"] == "ADMIN"
-        assert "id" in body
+        assert resp.status_code == 403
 
-    async def test_duplicate_email_raises_400(self, client, admin_user, auth_headers):
+
+    async def test_duplicate_email_raises_403(self, client, super_admin_user, super_auth_headers):
         resp = await client.post(
             "/api/v1/auth/signup",
-            json=self._payload(email=admin_user.email),
-            headers=auth_headers,
+            json=self._payload(email=super_admin_user.email),
+            headers=super_auth_headers,
         )
         assert resp.status_code == 400
         assert "Email already registered" in resp.json()["detail"]
@@ -55,8 +52,8 @@ class TestSignup:
             json=self._payload(email="super2@test.com", role="SUPER_ADMIN"),
             headers=super_auth_headers,
         )
-        # Either 201 (first SA) or 400 (SA already exists) — both are correct behaviour
-        assert resp.status_code in (201, 400)
+        # Either 201 (first SA) or 403 (SA already exists) — both are correct behaviour
+        assert resp.status_code in (201, 403)
 
     async def test_unauthenticated_signup_returns_401(self, client):
         resp = await client.post("/api/v1/auth/signup", json=self._payload())

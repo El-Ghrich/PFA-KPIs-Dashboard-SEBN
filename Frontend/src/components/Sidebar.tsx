@@ -10,6 +10,7 @@ export default function Sidebar() {
   const location = useLocation()
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN'
 
   const navItems = [
     { href: '/', label: 'Overview', icon: <GridIcon />, active: location.pathname === '/' },
@@ -18,7 +19,7 @@ export default function Sidebar() {
   const reportItems: { href: string; label: string; icon: React.ReactNode; active: boolean }[] = isAdmin ? [
     { href: '/entry', label: 'Weekly Entry', icon: <FileInputIcon />, active: location.pathname === '/entry' },
     { href: '/projects', label: 'Project Management', icon: <FolderKanbanIcon />, active: location.pathname === '/projects' },
-    { href: '/users', label: 'User Management', icon: <UsersIcon />, active: location.pathname === '/users' },
+    ...(isSuperAdmin ? [{ href: '/users', label: 'User Management', icon: <UsersIcon />, active: location.pathname === '/users' }] : []),
     { href: '/api-keys', label: 'API Keys', icon: <KeyIcon />, active: location.pathname === '/api-keys' },
   ] : []
 

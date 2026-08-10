@@ -4,6 +4,7 @@ Integration tests for /api/v1/auth — login, signup, refresh, me.
 """
 
 import pytest
+from fastapi import status
 
 
 # ─────────────────────────────────────────────────────────────────────────────

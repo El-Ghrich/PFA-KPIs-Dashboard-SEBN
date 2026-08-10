@@ -21,22 +21,46 @@ class UserService:
         requested_role: UserRoleEnum,
         exclude_user_id: str | None = None,
     ) -> None:
-        # Only super admins can grant the super admin role, and only one may exist.
+        """
+        Validate role assignment permissions.
+        
+        Rules:
+        1. Only Super Admin can create admins
+        2. Super Admin cannot create another Super Admin (only one exists)
+        3. Admins cannot create any users
+        """
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # Rule 1: Only Super Admin can create ANY user
+        # ─────────────────────────────────────────────────────────────────────────
+        if actor_role != UserRoleEnum.SUPER_ADMIN.value:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the super admin can create users"
+            )
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # Rule 2: Super Admin cannot create another Super Admin
+        # ─────────────────────────────────────────────────────────────────────────
         if requested_role == UserRoleEnum.SUPER_ADMIN:
-            if actor_role != UserRole.SUPER_ADMIN.value:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Only the super admin can grant the super admin role"
-                )
-            stmt = select(User).where(User.role == UserRole.SUPER_ADMIN)
+            # Check if a Super Admin already exists
+            stmt = select(User).where(User.role == UserRoleEnum.SUPER_ADMIN)
+            
+            # If updating, exclude the current user from the check
             if exclude_user_id:
                 stmt = stmt.where(User.id != exclude_user_id)
+            
             existing = await session.execute(stmt)
             if existing.scalar_one_or_none():
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
+                    status_code=status.HTTP_403_FORBIDDEN,
                     detail="A super admin account already exists"
                 )
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # Rule 3: Admins cannot create anything (already handled by Rule 1)
+        # ─────────────────────────────────────────────────────────────────────────
+        # If actor_role != SUPER_ADMIN, Rule 1 catches it and raises 403
 
     @staticmethod
     async def signup(session: AsyncSession, data: UserCreate, actor_role: str | None = None) -> User:

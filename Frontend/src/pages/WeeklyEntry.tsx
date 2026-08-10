@@ -8,12 +8,14 @@ import { Dropdown } from '../components/ui/Dropdown'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
+import { ErrorState } from '../components/ui/ErrorState'
+import { useToast } from '../contexts/ToastContext'
 import { HighlightEditor, type HighlightEditorItem } from '../components/HighlightEditor'
 import { DEFAULT_YEAR, YEARS } from '../lib/constants'
 import { getCurrentISOWeek, isoWeekRange, mondayOfISOWeek, weekLabelFromNumber } from '../lib/isoDate'
 import { formatDateRange } from '../lib/format'
 import type { KPIRecord } from '../types'
-import { Layers, Save, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Layers, Save } from 'lucide-react'
 
 const WEEK_OPTIONS = Array.from({ length: 53 }, (_, i) => ({
   value: i + 1,
@@ -31,6 +33,7 @@ function toISODate(date: Date): string {
 
 export default function WeeklyEntry() {
   const queryClient = useQueryClient()
+  const { showSuccess, showError } = useToast()
 
   const [projectId, setProjectId] = useState('')
   const [setId, setSetId] = useState('')
@@ -144,9 +147,20 @@ export default function WeeklyEntry() {
         })
       }
 
-      for (const p of patches) await kpisApi.updateRecord(p.id, { numeric_value: p.numeric_value })
-      if (createItems.length > 0) await kpisApi.createRecordsBulk(createItems)
-      for (const [status, items] of [['GOOD', good], ['BAD', bad]] as const) {
+      if (createItems.length > 0) {
+        await kpisApi.createRecordsBulk(createItems)
+      }
+
+      for (const p of patches) {
+        await kpisApi.updateRecord(p.id, { numeric_value: p.numeric_value })
+      }
+
+      const highlightGroups: [ 'GOOD' | 'BAD', HighlightEditorItem[] ][] = [
+        ['GOOD', good],
+        ['BAD', bad],
+      ]
+
+      for (const [status, items] of highlightGroups) {
         for (const it of items) {
           const text = it.text.trim()
           if (it.existingId) {
@@ -165,16 +179,21 @@ export default function WeeklyEntry() {
       }
     },
     onSuccess: async () => {
+      showSuccess(`Saved data for ${selectedSet?.name || 'set'} successfully!`)
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['dashboard', projectId, year] }),
         recordsQuery.refetch(),
         highlightsQuery.refetch(),
       ])
     },
+    onError: (err) => {
+      showError(err, 'Failed to Save KPI Entry')
+    },
   })
 
   const selectedSet = projectSets.find(s => s.id === setId)
   const anyExisting = records.length > 0
+  const queryError = projectsQuery.error || definitionsQuery.error || recordsQuery.error || highlightsQuery.error
 
   return (
     <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
@@ -217,7 +236,17 @@ export default function WeeklyEntry() {
             </div>
           </Card>
 
-          {!projectId ? (
+          {queryError ? (
+            <ErrorState
+              error={queryError}
+              onRetry={() => {
+                projectsQuery.refetch()
+                definitionsQuery.refetch()
+                if (enabled) recordsQuery.refetch()
+                if (projectId) highlightsQuery.refetch()
+              }}
+            />
+          ) : !projectId ? (
             <EmptyState className="h-64" message="Select a project to load data" />
           ) : projectSets.length === 0 ? (
             <EmptyState className="h-64" message="No sets configured for this project. Please add a set in Project Management." />
@@ -303,18 +332,6 @@ export default function WeeklyEntry() {
                   <Save className="w-4 h-4" />
                   {anyExisting ? `Update ${selectedSet?.name}` : `Save ${selectedSet?.name}`}
                 </Button>
-                {saveMutation.isSuccess && (
-                  <p className="text-[13px] text-emerald-600 font-medium flex items-center gap-1">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    Saved successfully — dashboard updated.
-                  </p>
-                )}
-                {saveMutation.isError && (
-                  <p className="text-[13px] text-error font-medium flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4 text-error" />
-                    Save failed. Please try again.
-                  </p>
-                )}
               </div>
             </Card>
           )}

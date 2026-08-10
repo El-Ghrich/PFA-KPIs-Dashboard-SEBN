@@ -61,10 +61,10 @@ export default function FilterBar({ projects, filters, onChange, onWeekChange }:
           onClick={() => setMobileOpen(v => !v)}
           className="flex items-center gap-1.5 text-[13px] font-semibold text-on-surface min-w-0"
         >
-          <SlidersHorizontal className="w-4 h-4 text-primary flex-shrink-0" />
+          <SlidersHorizontal className="w-4 h-4 text-primary shrink-0" />
           <span className="truncate">Filters</span>
           <ChevronDown
-            className={`w-3.5 h-3.5 text-on-surface-variant/60 flex-shrink-0 transition-transform duration-200 ${mobileOpen ? 'rotate-180' : ''}`}
+            className={`w-3.5 h-3.5 text-on-surface-variant/60 shrink-0 transition-transform duration-200 ${mobileOpen ? 'rotate-180' : ''}`}
           />
         </button>
 

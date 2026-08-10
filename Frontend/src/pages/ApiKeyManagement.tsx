@@ -8,6 +8,8 @@ import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { Dropdown } from '../components/ui/Dropdown'
 import { EmptyState } from '../components/ui/EmptyState'
+import { ErrorState } from '../components/ui/ErrorState'
+import { useToast } from '../contexts/ToastContext'
 import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { Copy, Ban, Trash2 } from 'lucide-react'
 import type { ApiKey, ApiKeyCreated } from '../types'
@@ -41,6 +43,8 @@ export default function ApiKeyManagement() {
   const { user: currentUser } = useAuth()
   const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN'
   const queryClient = useQueryClient()
+  const { showSuccess, showError } = useToast()
+
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [expiresAt, setExpiresAt] = useState(defaultExpiry)
@@ -67,6 +71,7 @@ export default function ApiKeyManagement() {
         user_id: ownerId || null,
       }),
     onSuccess: (key) => {
+      showSuccess(`API key "${name}" created!`)
       setCreated(key)
       setName('')
       setDescription('')
@@ -74,22 +79,27 @@ export default function ApiKeyManagement() {
       setOwnerId('')
       queryClient.invalidateQueries({ queryKey: ['api-keys'] })
     },
+    onError: (err) => showError(err, 'Failed to Create API Key'),
   })
 
   const revokeMutation = useMutation({
     mutationFn: (id: string) => apiKeysApi.revoke(id),
     onSuccess: () => {
+      showSuccess('API key revoked.')
       queryClient.invalidateQueries({ queryKey: ['api-keys'] })
       setConfirm(null)
     },
+    onError: (err) => showError(err, 'Failed to Revoke API Key'),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiKeysApi.remove(id),
     onSuccess: () => {
+      showSuccess('API key deleted.')
       queryClient.invalidateQueries({ queryKey: ['api-keys'] })
       setConfirm(null)
     },
+    onError: (err) => showError(err, 'Failed to Delete API Key'),
   })
 
   const handleConfirmAction = () => {
@@ -113,6 +123,8 @@ export default function ApiKeyManagement() {
     { value: '', label: 'Myself' },
     ...users.map(u => ({ value: u.id, label: `${u.full_name} · ${u.email}` })),
   ]
+
+  const queryError = keysQuery.error || usersQuery.error
 
   return (
     <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
@@ -141,9 +153,6 @@ export default function ApiKeyManagement() {
               >
                 Generate key
               </Button>
-              {createMutation.isError && (
-                <p className="text-[13px] text-error font-medium">Could not create the API key.</p>
-              )}
             </div>
 
             {created && (
@@ -164,7 +173,15 @@ export default function ApiKeyManagement() {
             )}
           </Card>
 
-          {keysQuery.isLoading ? (
+          {queryError ? (
+            <ErrorState
+              error={queryError}
+              onRetry={() => {
+                keysQuery.refetch()
+                usersQuery.refetch()
+              }}
+            />
+          ) : keysQuery.isLoading ? (
             <EmptyState className="h-48" message="Loading API keys..." />
           ) : visibleKeys.length === 0 ? (
             <EmptyState className="h-48" message={showInactive ? 'No API keys in this view' : 'No active API keys yet'} />

@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import FilterBar from '../components/FilterBar'
 import { projectsApi } from '../api/projects'
 import { EmptyState } from '../components/ui/EmptyState'
+import { ErrorState } from '../components/ui/ErrorState'
 import { useBreakpoint } from '../hooks/useBreakpoint'
 import { BREAKPOINT_DESKTOP, CHART_WEEKS_DESKTOP, CHART_WEEKS_MOBILE, DEFAULT_PROJECT_NAME } from '../lib/constants'
 import { DashboardHeader } from '../features/dashboard/DashboardHeader'
 import { DashboardToolbar } from '../features/dashboard/DashboardToolbar'
 import { KpiGrid } from '../features/dashboard/KpiGrid'
 import { TrendSection } from '../features/dashboard/TrendSection'
+import { KeyTakeawaysSection } from '../features/dashboard/KeyTakeawaysSection'
 import { buildDefaultFilters } from '../features/dashboard/filters'
 import { useDashboardData } from '../features/dashboard/useDashboardData'
 import { buildChartWeekData, computeKpis, groupRecords, splitHighlights } from '../features/dashboard/transformers'
@@ -20,26 +22,23 @@ export default function Dashboard() {
   const [projectsError, setProjectsError] = useState<Error | null>(null)
   const isDesktop = useBreakpoint(BREAKPOINT_DESKTOP)
 
-  // Fetch projects on mount — no token check, API is public for the dashboard
-  useEffect(() => {
-    let cancelled = false
-
-    const fetchProjects = async () => {
-      setIsProjectsLoading(true)
-      setProjectsError(null)
-      try {
-        const result = await projectsApi.list(1, 100)
-        if (!cancelled) setProjects(result.items || [])
-      } catch (error) {
-        if (!cancelled) setProjectsError(error as Error)
-      } finally {
-        if (!cancelled) setIsProjectsLoading(false)
-      }
+  // Fetch projects function
+  const fetchProjects = useCallback(async () => {
+    setIsProjectsLoading(true)
+    setProjectsError(null)
+    try {
+      const result = await projectsApi.list(1, 100)
+      setProjects(result.items || [])
+    } catch (error) {
+      setProjectsError(error as Error)
+    } finally {
+      setIsProjectsLoading(false)
     }
-
-    fetchProjects()
-    return () => { cancelled = true }
   }, [])
+
+  useEffect(() => {
+    fetchProjects()
+  }, [fetchProjects])
 
   useEffect(() => {
     if (filters.projectId || projects.length === 0) return
@@ -48,7 +47,7 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.projectId, projects])
 
-  const { data, isLoading } = useDashboardData(filters)
+  const { data, isLoading, isError, error, refetch } = useDashboardData(filters)
 
   const allWeekData = useMemo(() => groupRecords(data?.records ?? []), [data?.records])
 
@@ -86,9 +85,10 @@ export default function Dashboard() {
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-8 py-6 sm:py-8">
-            <EmptyState
-              className="h-64"
-              message={`Failed to load dashboard data: ${projectsError.message}`}
+            <ErrorState
+              error={projectsError}
+              onRetry={fetchProjects}
+              isRetrying={isProjectsLoading}
             />
           </div>
         </div>
@@ -121,12 +121,20 @@ export default function Dashboard() {
             onCompareWeekChange={(w, y) => setFilters(prev => ({ ...prev, compareWeek: w, year: y }))}
           />
 
-          {isLoading || !filters.projectId ? (
+          {isError ? (
+            <ErrorState
+              error={error}
+              onRetry={refetch}
+              compact
+              className="mt-4"
+            />
+          ) : isLoading || !filters.projectId ? (
             <EmptyState className="h-64" message="Loading dashboard data..." />
           ) : (
             <>
               {kpiList && <KpiGrid kpis={kpiList} diffValues={compareDiffValues} />}
               <TrendSection weekData={chartWeekData} good={good} bad={bad} />
+              <KeyTakeawaysSection projectId={filters.projectId} projectName={projectName} />
             </>
           )}
         </div>

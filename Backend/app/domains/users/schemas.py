@@ -83,7 +83,7 @@ class UserResponse(UserBase):
     id: str
     created_at: datetime
     
-    class Config:
+    class ConfigDict:
         from_attributes = True  # ORM mode for SQLAlchemy
 
 
