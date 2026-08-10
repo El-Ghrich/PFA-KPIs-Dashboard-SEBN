@@ -9,7 +9,7 @@
  *   2. The dropdown list appears — click an option button by its label text.
  */
 
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, type Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import FilterBar from '../../components/FilterBar'
@@ -38,13 +38,13 @@ const BASE_FILTERS: FilterState = {
 function renderFilterBar(
   filters: FilterState = BASE_FILTERS,
   overrides: {
-    onChange?: ReturnType<typeof vi.fn>
-    onWeekChange?: ReturnType<typeof vi.fn>
+    onChange?: Mock<(filters: FilterState) => void>
+    onWeekChange?: Mock<(week: number, year: number) => void>
     projects?: typeof MOCK_PROJECTS
   } = {},
 ) {
-  const onChange = overrides.onChange ?? vi.fn()
-  const onWeekChange = overrides.onWeekChange ?? vi.fn()
+  const onChange = overrides.onChange ?? vi.fn<(filters: FilterState) => void>()
+  const onWeekChange = overrides.onWeekChange ?? vi.fn<(week: number, year: number) => void>()
   const projects = overrides.projects ?? MOCK_PROJECTS
 
   render(

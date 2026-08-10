@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { buildDefaultFilters } from '../../features/dashboard/filters'
 import { MOCK_PROJECTS, MOCK_PROJECT_MOROCCO, MOCK_PROJECT_MEXICO } from '../mocks/data'
-import { DEFAULT_PROJECT_NAME, DEFAULT_YEAR } from '../../lib/constants'
+import { DEFAULT_YEAR } from '../../lib/constants'
 import * as isoDate from '../../lib/isoDate'
 
 describe('buildDefaultFilters', () => {

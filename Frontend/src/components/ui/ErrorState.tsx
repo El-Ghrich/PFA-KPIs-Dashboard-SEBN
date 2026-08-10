@@ -105,7 +105,7 @@ export function ErrorState({
       )}
 
       {/* Accordion for Technical Debug Details */}
-      {(parsed.status || parsed.code || parsed.detail) && (
+      {Boolean(parsed.status || parsed.code || parsed.detail) && (
         <div className="w-full mt-2 pt-4 border-t border-border-card text-left">
           <button
             onClick={() => setShowDetails(v => !v)}
@@ -117,13 +117,13 @@ export function ErrorState({
 
           {showDetails && (
             <div className="mt-2 p-3 bg-surface-container rounded-lg font-mono text-[11px] text-on-surface-variant space-y-1 overflow-x-auto">
-              {parsed.status && <div><span className="font-bold text-on-surface">Status:</span> HTTP {parsed.status}</div>}
-              {parsed.code && <div><span className="font-bold text-on-surface">Code:</span> {parsed.code}</div>}
-              {parsed.detail && (
+              {Boolean(parsed.status) && <div><span className="font-bold text-on-surface">Status:</span> HTTP {parsed.status}</div>}
+              {Boolean(parsed.code) && <div><span className="font-bold text-on-surface">Code:</span> {parsed.code}</div>}
+              {Boolean(parsed.detail) && (
                 <div>
                   <span className="font-bold text-on-surface">Detail:</span>
                   <pre className="mt-1 whitespace-pre-wrap text-[10.5px]">
-                    {typeof parsed.detail === 'object' ? JSON.stringify(parsed.detail, null, 2) : String(parsed.detail)}
+                    {typeof parsed.detail === 'object' ? JSON.stringify(parsed.detail, null, 2) : String(parsed.detail ?? '')}
                   </pre>
                 </div>
               )}

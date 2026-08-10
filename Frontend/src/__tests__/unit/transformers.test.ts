@@ -19,7 +19,6 @@ import {
   MOCK_HIGHLIGHT_GOOD,
   MOCK_HIGHLIGHT_BAD,
   makeRecord,
-  MOCK_KPI_OEE,
 } from '../mocks/data'
 
 // ─────────────────────────────────────────────────────────────────────────────

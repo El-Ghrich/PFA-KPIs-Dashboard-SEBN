@@ -1,5 +1,3 @@
-import { Spinner } from './Spinner'
-
 interface EmptyStateProps {
   message: string
   className?: string

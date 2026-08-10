@@ -13,6 +13,7 @@ from app.domains.projects.models import Project, ProjectSet
 from app.domains.kpis.models import KPIDefinition, KPIRecord
 from app.domains.highlights.models import Highlight
 from app.domains.api_keys.models import ApiKey
+from app.domains.takeaways.models import KeyTakeaway
 
 from alembic import context
 
@@ -76,11 +77,15 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
 
     """
+    connect_args = {}
+    if settings.DATABASE_URL:
+        connect_args["ssl"] = "require"
 
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
 
     async with connectable.connect() as connection:

@@ -7,7 +7,7 @@ export interface ParsedApiError {
   code?: string
   isNetworkError: boolean
   isAuthError: boolean
-  detail?: string | string[] | Record<string, unknown>
+  detail?: string | string[] | Record<string, unknown> | Array<{ msg?: string; loc?: string[] }> | unknown
 }
 
 /**

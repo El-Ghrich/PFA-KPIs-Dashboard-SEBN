@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import axios, { AxiosError, AxiosHeaders } from 'axios'
+import { AxiosError, AxiosHeaders } from 'axios'
 import { parseApiError } from '../../lib/errorUtils'
 
 describe('parseApiError', () => {

@@ -6,6 +6,7 @@ from app.db.session import AsyncSessionLocal
 from app.domains.projects.models import Project, ProjectSet, ProjectStatus
 from app.domains.kpis.models import KPIDefinition, KPIRecord, KpiType, RecordPeriod
 from app.domains.highlights.models import Highlight, HighlightStatus, HighlightPeriod
+from app.domains.takeaways.models import KeyTakeaway
 from app.domains.users.models import User, UserRole
 from app.core.security import hash_password
 
@@ -218,7 +219,46 @@ async def seed():
                     ))
                 await session.flush()
 
-            print(f"Seeded {len(WEEKS)} weeks across {len(set_map)} sets for {proj_info['name']}")
+            # Seed project key takeaways
+            sample_takeaways = {
+                "MEB31": [
+                    "Upgraded line 1 & 2 to high-speed ultrasonic crimping tools.",
+                    "Passed annual ISO-9001 quality audit with zero non-conformities.",
+                    "Achieved 95%+ overall equipment efficiency milestone in Q2.",
+                ],
+                "MEB21 HV": [
+                    "High-voltage wiring harness validation completed successfully.",
+                    "Operator ergonomics redesign implemented across all assembly stations.",
+                ],
+                "TIGUAN": [
+                    "Pre-production ramp-up phase completed 2 weeks ahead of schedule.",
+                    "New automated optical inspection (AOI) system deployed on line 3.",
+                ],
+                "MEB21 LV KSK": [
+                    "Custom KSK modular harness jig integration finalized.",
+                ],
+                "MEB21 LV AUTRAK": [
+                    "Autrak automated testing station commissioned.",
+                ],
+                "BMW": [
+                    "Plant A capacity expansion project approved by management.",
+                    "Cross-functional kaizen event reduced changeover time by 18%.",
+                ],
+            }
+
+            takeaways_to_add = sample_takeaways.get(proj_info["name"], [])
+            for note in takeaways_to_add:
+                existing_t = await session.execute(
+                    select(KeyTakeaway).where(
+                        KeyTakeaway.project_id == project.id,
+                        KeyTakeaway.content == note,
+                    )
+                )
+                if not existing_t.scalars().first():
+                    session.add(KeyTakeaway(project_id=project.id, content=note))
+
+            await session.flush()
+            print(f"Seeded {len(WEEKS)} weeks & {len(takeaways_to_add)} takeaways across {len(set_map)} sets for {proj_info['name']}")
 
         await session.commit()
         print("\nSeeding complete!")
