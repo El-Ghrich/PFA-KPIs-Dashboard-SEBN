@@ -1,0 +1,100 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  frontend-tests:
+    name: Frontend Build & Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        run: npm ci
+        working-directory: Frontend
+
+      - name: Run TypeScript & Vite Build
+        run: npm run build
+        working-directory: Frontend
+
+      - name: Run Vitest Unit & Integration Tests
+        run: npx vitest run
+        working-directory: Frontend
+
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Backend Dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install .
+        working-directory: Backend
+
+      - name: Run Pytest Test Suite
+        env:
+          ENVIRONMENT: local
+          JWT_SECRET_KEY: "test-secret-key-123456789012345678901234567890"
+          ALGORITHM: HS256
+          ACCESS_TOKEN_EXPIRE_MINUTES: 30
+          REFRESH_TOKEN_EXPIRE_DAYS: 7
+          API_V1_STR: /api/v1
+          VERSION: "1.0.0"
+          PROJECT_NAME: "HCM-S CIM3 KPI Dashboard"
+        run: pytest
+        working-directory: Backend
+
+  docker-build-push:
+    name: Docker Build & Push to Docker Hub
+    needs: [frontend-tests, backend-tests]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Backend Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Backend
+          file: ./Backend/Dockerfile
+          push: true
+          tags: |
+            salmanelghrich/pfa-kpi-backend:latest
+            salmanelghrich/pfa-kpi-backend:${{ github.sha }}
