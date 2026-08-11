@@ -6,13 +6,14 @@ services:
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: kpi_user
+      POSTGRES_PASSWORD: SecurePassword123
+      POSTGRES_DB: kpi_dashboard
     volumes:
       - db_data:/var/lib/data
       - ./db-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U kpi_user -d kpi_dashboard"]
       interval: 5s
       timeout: 5s
       retries: 5

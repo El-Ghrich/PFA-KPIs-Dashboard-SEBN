@@ -8,6 +8,7 @@ import TopBar from './components/TopBar'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import WeeklyEntry from './pages/WeeklyEntry'
+import BulkDataEntry from './pages/BulkDataEntry'
 import UserManagement from './pages/UserManagement'
 import ApiKeyManagement from './pages/ApiKeyManagement'
 import ProjectManagement from './pages/ProjectManagement'
@@ -101,6 +102,7 @@ export default function App() {
               {/* ── Auth-required: admin pages ── */}
               <Route element={<AuthRequired><AdminLayout /></AuthRequired>}>
                 <Route path="/entry" element={<AdminRequired><WeeklyEntry /></AdminRequired>} />
+                <Route path="/bulk-entry" element={<AdminRequired><BulkDataEntry /></AdminRequired>} />
                 <Route path="/projects" element={<AdminRequired><ProjectManagement /></AdminRequired>} />
                 <Route path="/users" element={<SuperAdminRequired><UserManagement /></SuperAdminRequired>} />
                 <Route path="/api-keys" element={<AdminRequired><ApiKeyManagement /></AdminRequired>} />
@@ -114,5 +116,3 @@ export default function App() {
     </ErrorBoundary>
   )
 }
-
-

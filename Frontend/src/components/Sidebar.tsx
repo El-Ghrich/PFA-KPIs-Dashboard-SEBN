@@ -18,6 +18,7 @@ export default function Sidebar() {
 
   const reportItems: { href: string; label: string; icon: React.ReactNode; active: boolean }[] = isAdmin ? [
     { href: '/entry', label: 'Weekly Entry', icon: <FileInputIcon />, active: location.pathname === '/entry' },
+    { href: '/bulk-entry', label: 'Bulk Data Entry', icon: <TablePropertiesIcon />, active: location.pathname === '/bulk-entry' },
     { href: '/projects', label: 'Project Management', icon: <FolderKanbanIcon />, active: location.pathname === '/projects' },
     ...(isSuperAdmin ? [{ href: '/users', label: 'User Management', icon: <UsersIcon />, active: location.pathname === '/users' }] : []),
     { href: '/api-keys', label: 'API Keys', icon: <KeyIcon />, active: location.pathname === '/api-keys' },
@@ -176,3 +177,4 @@ function FileInputIcon() { return <svg width="16" height="16" viewBox="0 0 24 24
 function UsersIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" /></svg> }
 function FolderKanbanIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 8.07 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" /><path d="M8 10v4" /><path d="M12 10v2" /><path d="M16 10v6" /></svg> }
 function KeyIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="15.5" r="5.5" /><path d="M21 2l-9.6 9.6" /><path d="M15.5 7.5l3 3L22 7l-3-3" /></svg> }
+function TablePropertiesIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3v18" /><path d="M3 15h18" /><path d="M3 9h18" /><rect width="18" height="18" x="3" y="3" rx="2" /></svg> }

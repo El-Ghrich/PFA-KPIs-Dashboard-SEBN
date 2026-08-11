@@ -12,9 +12,11 @@ interface FilterBarProps {
   filters: FilterState
   onChange: (filters: FilterState) => void
   onWeekChange: (week: number, year: number) => void
+  hideSet?: boolean
+  hideWeek?: boolean
 }
 
-export default function FilterBar({ projects, filters, onChange, onWeekChange }: FilterBarProps) {
+export default function FilterBar({ projects, filters, onChange, onWeekChange, hideSet = false, hideWeek = false }: FilterBarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const filteredProjects = filters.location === 'All'
@@ -69,13 +71,15 @@ export default function FilterBar({ projects, filters, onChange, onWeekChange }:
         </button>
 
         {/* Right: compact week navigator — always visible on mobile */}
-        <WeekNavigator
-          week={filters.week}
-          year={filters.year}
-          onChange={onWeekChange}
-          showToday={false}
-          compact
-        />
+        {!hideWeek && (
+          <WeekNavigator
+            week={filters.week}
+            year={filters.year}
+            onChange={onWeekChange}
+            showToday={false}
+            compact
+          />
+        )}
       </div>
 
       {/* ── Expandable filters panel ────────────────────────── */}
@@ -104,26 +108,30 @@ export default function FilterBar({ projects, filters, onChange, onWeekChange }:
               options={YEARS.map(y => ({ value: y, label: y }))}
               onChange={year => update({ year: Number(year) })}
             />
-            <Dropdown
-              label="Set"
-              value={filters.setId}
-              options={setOptions}
-              onChange={setId => update({ setId })}
-            />
+            {!hideSet && (
+              <Dropdown
+                label="Set"
+                value={filters.setId}
+                options={setOptions}
+                onChange={setId => update({ setId })}
+              />
+            )}
           </div>
 
           {/* Week navigator (desktop) + Reset */}
           <div className="flex items-end gap-3">
             {/* Week nav: desktop only (mobile uses the compact one in the header) */}
-            <div className="hidden sm:flex flex-col gap-0.5">
-              <label className="text-xs font-medium text-gray-500">Week</label>
-              <WeekNavigator
-                week={filters.week}
-                year={filters.year}
-                onChange={onWeekChange}
-                showToday
-              />
-            </div>
+            {!hideWeek && (
+              <div className="hidden sm:flex flex-col gap-0.5">
+                <label className="text-xs font-medium text-gray-500">Week</label>
+                <WeekNavigator
+                  week={filters.week}
+                  year={filters.year}
+                  onChange={onWeekChange}
+                  showToday
+                />
+              </div>
+            )}
 
             <button
               onClick={handleReset}

@@ -78,7 +78,7 @@ async def run_async_migrations() -> None:
 
     """
     connect_args = {}
-    if settings.DATABASE_URL:
+    if settings.is_production:
         connect_args["ssl"] = "require"
 
     connectable = async_engine_from_config(

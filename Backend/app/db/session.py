@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from app.core.config import settings
 
 connect_args = {}
-if settings.DATABASE_URL:
+if settings.is_production:
     connect_args["ssl"] = "require"
 
 engine = create_async_engine(

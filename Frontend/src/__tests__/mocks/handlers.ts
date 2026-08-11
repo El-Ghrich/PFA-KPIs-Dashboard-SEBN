@@ -6,9 +6,19 @@
  */
 
 import { http, HttpResponse } from 'msw'
-import { MOCK_AUTH_RESPONSE, MOCK_ADMIN_USER, MOCK_PROJECTS } from './data'
+import {
+  MOCK_AUTH_RESPONSE,
+  MOCK_ADMIN_USER,
+  MOCK_PROJECTS,
+  MOCK_KPI_OUTPUT,
+  MOCK_KPI_SCRAP,
+  MOCK_KPI_OEE,
+  RECORD_CW01_OUTPUT,
+  RECORD_CW02_OUTPUT,
+  RECORD_CW02_SCRAP,
+} from './data'
 
-const BASE = '/api/v1'
+const BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
 export const handlers = [
   // ── Auth ─────────────────────────────────────────────────────────────────
@@ -57,9 +67,43 @@ export const handlers = [
     return HttpResponse.json(created, { status: 201 })
   }),
 
-  /** DELETE /takeaways/:id */
-  http.delete(`${BASE}/takeaways/:id`, () => {
-    return new HttpResponse(null, { status: 204 })
+  // ── KPIs ──────────────────────────────────────────────────────────────────
+
+  /** GET /kpis/definitions */
+  http.get(`${BASE}/kpis/definitions`, () => {
+    return HttpResponse.json(
+      [
+        MOCK_KPI_OUTPUT,
+        MOCK_KPI_SCRAP,
+        MOCK_KPI_OEE,
+        { id: 'kpi-def-cim1', name: 'Insertion rate cim-1', unit: '%', kpi_type: 'NUMERIC' },
+        { id: 'kpi-def-cim2', name: 'Insertion rate cim-2', unit: '%', kpi_type: 'NUMERIC' },
+        { id: 'kpi-def-cim3', name: 'Insertion rate cim-3', unit: '%', kpi_type: 'NUMERIC' },
+      ],
+      { status: 200 },
+    )
+  }),
+
+  /** GET /kpis/records */
+  http.get(`${BASE}/kpis/records`, () => {
+    return HttpResponse.json([RECORD_CW01_OUTPUT, RECORD_CW02_OUTPUT, RECORD_CW02_SCRAP], { status: 200 })
+  }),
+
+  /** POST /kpis/records/bulk */
+  http.post(`${BASE}/kpis/records/bulk`, async ({ request }) => {
+    const body = (await request.json()) as { records: any[] }
+    const records = body.records || []
+    return HttpResponse.json(
+      {
+        records: records.map((r, i) => ({
+          id: `rec-bulk-${i}`,
+          created_at: new Date().toISOString(),
+          ...r,
+        })),
+        total: records.length,
+      },
+      { status: 201 },
+    )
   }),
 ]
 
