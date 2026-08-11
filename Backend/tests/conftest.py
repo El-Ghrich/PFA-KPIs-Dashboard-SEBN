@@ -46,6 +46,7 @@ async def async_engine():
     import app.domains.kpis.models           # noqa: F401
     import app.domains.api_keys.models       # noqa: F401
     import app.domains.highlights.models     # noqa: F401
+    import app.domains.takeaways.models      # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
