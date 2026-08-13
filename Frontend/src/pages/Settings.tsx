@@ -5,7 +5,7 @@ import { Button } from '../components/ui/Button'
 import { useToast } from '../contexts/ToastContext'
 import { useSettings } from '../hooks/useSettings'
 import type { AppSettings } from '../hooks/useSettings'
-import { Settings as SettingsIcon, Save } from 'lucide-react'
+import { Save } from 'lucide-react'
 
 export default function Settings() {
   const { settings, setSettings } = useSettings()
@@ -44,7 +44,7 @@ export default function Settings() {
             <h2 className="text-lg font-semibold text-foreground border-b border-slate-700/50 pb-2">
               General Dashboard Preferences
             </h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Default Project Name"
@@ -71,7 +71,7 @@ export default function Settings() {
             <h2 className="text-lg font-semibold text-foreground border-b border-slate-700/50 pb-2">
               Charts & Visualization
             </h2>
-            
+
             <Input
               label="Chart Target KPI"
               name="chartTarget"
@@ -80,7 +80,7 @@ export default function Settings() {
               onChange={handleChange}
               required
             />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Chart Weeks (Desktop)"
