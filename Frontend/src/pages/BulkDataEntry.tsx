@@ -370,6 +370,7 @@ export default function BulkDataEntry() {
                         <td className="px-3 py-2">
                           <input
                             type="number"
+                            step="100"
                             value={row.output ?? ''}
                             onChange={(e) =>
                               updateCell(row.id, 'output', e.target.value ? parseFloat(e.target.value) : null)
@@ -382,7 +383,7 @@ export default function BulkDataEntry() {
                         <td className="px-3 py-2">
                           <input
                             type="number"
-                            step="0.01"
+                            step="0.1"
                             value={row.scrap ?? ''}
                             onChange={(e) =>
                               updateCell(row.id, 'scrap', e.target.value ? parseFloat(e.target.value) : null)
@@ -395,7 +396,7 @@ export default function BulkDataEntry() {
                         <td className="px-3 py-2">
                           <input
                             type="number"
-                            step="0.01"
+                            step="5"
                             value={row.oee ?? ''}
                             onChange={(e) =>
                               updateCell(row.id, 'oee', e.target.value ? parseFloat(e.target.value) : null)
@@ -408,7 +409,7 @@ export default function BulkDataEntry() {
                         <td className="px-3 py-2">
                           <input
                             type="number"
-                            step="0.01"
+                            step="5"
                             value={row.cim1 ?? ''}
                             onChange={(e) =>
                               updateCell(row.id, 'cim1', e.target.value ? parseFloat(e.target.value) : null)
@@ -421,7 +422,7 @@ export default function BulkDataEntry() {
                         <td className="px-3 py-2">
                           <input
                             type="number"
-                            step="0.01"
+                            step="5"
                             value={row.cim2 ?? ''}
                             onChange={(e) =>
                               updateCell(row.id, 'cim2', e.target.value ? parseFloat(e.target.value) : null)
@@ -434,7 +435,7 @@ export default function BulkDataEntry() {
                         <td className="px-3 py-2">
                           <input
                             type="number"
-                            step="0.01"
+                            step="5"
                             value={row.cim3 ?? ''}
                             onChange={(e) =>
                               updateCell(row.id, 'cim3', e.target.value ? parseFloat(e.target.value) : null)
