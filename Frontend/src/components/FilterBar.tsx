@@ -3,6 +3,7 @@ import { Card } from './ui/Card'
 import { Dropdown } from './ui/Dropdown'
 import WeekNavigator from './WeekNavigator'
 import { buildDefaultFilters } from '../features/dashboard/filters'
+import { useSettings } from '../hooks/useSettings'
 import { LOCATIONS, YEARS } from '../lib/constants'
 import type { FilterState, Project } from '../types'
 import { SlidersHorizontal, RotateCcw, ChevronDown } from 'lucide-react'
@@ -17,6 +18,7 @@ interface FilterBarProps {
 }
 
 export default function FilterBar({ projects, filters, onChange, onWeekChange, hideSet = false, hideWeek = false }: FilterBarProps) {
+  const { settings } = useSettings()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const filteredProjects = filters.location === 'All'
@@ -49,7 +51,7 @@ export default function FilterBar({ projects, filters, onChange, onWeekChange, h
   }
 
   function handleReset() {
-    onChange(buildDefaultFilters(projects))
+    onChange(buildDefaultFilters(projects, settings))
     setMobileOpen(false)
   }
 

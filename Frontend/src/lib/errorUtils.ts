@@ -33,8 +33,8 @@ export function parseApiError(error: unknown, fallbackMessage = 'An unexpected e
     // 1. Network disconnect or server down (ERR_NETWORK, ECONNREFUSED, fetch failure, status 0 or undefined)
     if (!error.response || code === 'ERR_NETWORK' || code === 'ECONNREFUSED' || status === 0) {
       return {
-        title: 'Backend Unreachable',
-        message: 'Unable to connect to the server. Please verify the FastAPI backend is running and your network connection is active.',
+        title: 'Server Unreachable',
+        message: 'Unable to connect to the server. Please check your network connection, or retry again later.',
         code: code || 'NETWORK_ERROR',
         isNetworkError: true,
         isAuthError: false,

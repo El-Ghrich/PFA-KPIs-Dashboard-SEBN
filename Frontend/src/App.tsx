@@ -12,6 +12,7 @@ import BulkDataEntry from './pages/BulkDataEntry'
 import UserManagement from './pages/UserManagement'
 import ApiKeyManagement from './pages/ApiKeyManagement'
 import ProjectManagement from './pages/ProjectManagement'
+import Settings from './pages/Settings'
 import type { ReactNode } from 'react'
 
 // ── Public layout for guests (no sidebar) ──────────────────────────────────
@@ -106,6 +107,7 @@ export default function App() {
                 <Route path="/projects" element={<AdminRequired><ProjectManagement /></AdminRequired>} />
                 <Route path="/users" element={<SuperAdminRequired><UserManagement /></SuperAdminRequired>} />
                 <Route path="/api-keys" element={<AdminRequired><ApiKeyManagement /></AdminRequired>} />
+                <Route path="/settings" element={<AdminRequired><Settings /></AdminRequired>} />
               </Route>
 
               <Route path="*" element={<Navigate to="/" replace />} />

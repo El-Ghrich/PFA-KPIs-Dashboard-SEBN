@@ -9,6 +9,7 @@ import { kpisApi, type KPIRecordBulkCreateItem } from '../api/kpis'
 import { useToast } from '../contexts/ToastContext'
 import { useExcelPaste } from '../hooks/useExcelPaste'
 import { buildDefaultFilters } from '../features/dashboard/filters'
+import { useSettings } from '../hooks/useSettings'
 import { mondayOfISOWeek, weekLabelFromNumber } from '../lib/isoDate'
 import type { FilterState, Project, KPIDefinition } from '../types'
 import { ClipboardPaste, CheckCircle2, UploadCloud, Trash2, RotateCcw, AlertCircle } from 'lucide-react'
@@ -17,7 +18,8 @@ export default function BulkDataEntry() {
   const queryClient = useQueryClient()
   const { showSuccess, showError } = useToast()
 
-  const [filters, setFilters] = useState<FilterState>(() => buildDefaultFilters([]))
+  const { settings } = useSettings()
+  const [filters, setFilters] = useState<FilterState>(() => buildDefaultFilters([], settings))
   const [projects, setProjects] = useState<Project[]>([])
   const [isProjectsLoading, setIsProjectsLoading] = useState(true)
   const [projectsError, setProjectsError] = useState<Error | null>(null)

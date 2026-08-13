@@ -212,8 +212,10 @@ class TestQueryKPIRecords:
         await self._seed_record(client, sample_project, sample_kpi_def, auth_headers)
         resp = await client.get(f"/api/v1/kpis/records?project_id={sample_project.id}")
         assert resp.status_code == 200
-        assert isinstance(resp.json(), list)
-        assert len(resp.json()) >= 1
+        data = resp.json()
+        assert isinstance(data, dict)
+        assert isinstance(data["records"], list)
+        assert len(data["records"]) >= 1
 
     async def test_filter_by_period(self, client, sample_project, sample_kpi_def, auth_headers):
         await self._seed_record(client, sample_project, sample_kpi_def, auth_headers, period="DAILY")
@@ -221,7 +223,9 @@ class TestQueryKPIRecords:
             f"/api/v1/kpis/records?project_id={sample_project.id}&period=DAILY"
         )
         assert resp.status_code == 200
-        assert all(r["period"] == "DAILY" for r in resp.json())
+        records = resp.json()["records"]
+        assert len(records) == 1
+        assert all(r["period"] == "DAILY" for r in records)
 
     async def test_iso_week_without_iso_year_returns_400(self, client, sample_project):
         resp = await client.get(
@@ -236,7 +240,9 @@ class TestQueryKPIRecords:
             f"/api/v1/kpis/records?project_id={sample_project.id}&kpi_id={sample_kpi_def.id}"
         )
         assert resp.status_code == 200
-        assert all(r["kpi_id"] == sample_kpi_def.id for r in resp.json())
+        records = resp.json()["records"]
+        assert len(records) == 1
+        assert all(r["kpi_id"] == sample_kpi_def.id for r in records)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

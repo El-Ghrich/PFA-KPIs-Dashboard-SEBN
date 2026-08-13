@@ -17,7 +17,7 @@ import {
   type TooltipItem,
 } from 'chart.js'
 import { Card } from './ui/Card'
-import { CHART_TARGET } from '../lib/constants'
+import { useSettings } from '../hooks/useSettings'
 
 ChartJS.register(
   CategoryScale,
@@ -52,7 +52,8 @@ const COLORS = {
 }
 
 export default function ProductionChart({ weekLabels, outputData, oeeData }: ProductionChartProps) {
-  const targetData = outputData.map(() => CHART_TARGET)
+  const { settings } = useSettings()
+  const targetData = outputData.map(() => settings.chartTarget)
 
   const data: MixedData = {
     labels: weekLabels,

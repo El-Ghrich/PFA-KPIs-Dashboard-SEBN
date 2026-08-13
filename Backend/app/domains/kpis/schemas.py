@@ -72,6 +72,13 @@ class KPIRecordWriteResponse(KPIRecordResponseBase):
 class KPIRecordResponse(KPIRecordResponseBase):
     kpi_definition: Optional[KPIDefinitionResponse] = None
 
+class KPIRecordWithoutDefinitionResponse(KPIRecordResponseBase):
+    pass
+
+class KPIRecordsListResponse(BaseModel):
+    definitions: list[KPIDefinitionResponse]
+    records: list[KPIRecordWithoutDefinitionResponse]
+
 class KPIRecordBulkCreate(BaseModel):
     records: list[KPIRecordCreate]
 
