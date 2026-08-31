@@ -86,7 +86,19 @@ export const handlers = [
 
   /** GET /kpis/records */
   http.get(`${BASE}/kpis/records`, () => {
-    return HttpResponse.json([RECORD_CW01_OUTPUT, RECORD_CW02_OUTPUT, RECORD_CW02_SCRAP], { status: 200 })
+    const rawRecords = [RECORD_CW01_OUTPUT, RECORD_CW02_OUTPUT, RECORD_CW02_SCRAP]
+    const defMap = new Map()
+    const records = rawRecords.map(r => {
+      if (r.kpi_definition) {
+        defMap.set(r.kpi_definition.id, r.kpi_definition)
+      }
+      const { kpi_definition, ...rest } = r
+      return rest
+    })
+    return HttpResponse.json({
+      definitions: Array.from(defMap.values()),
+      records,
+    }, { status: 200 })
   }),
 
   /** POST /kpis/records/bulk */

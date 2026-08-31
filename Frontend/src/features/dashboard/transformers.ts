@@ -20,12 +20,27 @@ export interface KpiDisplay {
 }
 
 export function groupRecords(records: KPIRecord[]): WeekDataPoint[] {
-  const weekMap = new Map<string, Map<string, number | null>>()
+  // Store arrays of values to compute averages when 'All' sets are selected
+  const weekMap = new Map<string, Map<string, number[]>>()
+  
   for (const rec of records) {
     if (!rec.kpi_definition) continue
+    if (rec.numeric_value === null || rec.numeric_value === undefined) continue
+    
     const weekKey = weekLabel(rec.record_date)
     if (!weekMap.has(weekKey)) weekMap.set(weekKey, new Map())
-    weekMap.get(weekKey)!.set(rec.kpi_definition.name, rec.numeric_value)
+    
+    const kpiMap = weekMap.get(weekKey)!
+    const kpiName = rec.kpi_definition.name
+    
+    if (!kpiMap.has(kpiName)) kpiMap.set(kpiName, [])
+    kpiMap.get(kpiName)!.push(rec.numeric_value)
+  }
+
+  const getAvg = (arr: number[] | undefined) => {
+    if (!arr || arr.length === 0) return null
+    const avg = arr.reduce((a, b) => a + b, 0) / arr.length
+    return Math.round(avg * 10) / 10
   }
 
   return [...weekMap.entries()]
@@ -37,12 +52,12 @@ export function groupRecords(records: KPIRecord[]): WeekDataPoint[] {
     })
     .map(([label, values]) => ({
       weekLabel: label,
-      output: values.get(KPI_LABELS[0]) ?? null,
-      scrapRate: values.get(KPI_LABELS[1]) ?? null,
-      oee: values.get(KPI_LABELS[2]) ?? null,
-      insertion1: values.get(KPI_LABELS[3]) ?? null,
-      insertion2: values.get(KPI_LABELS[4]) ?? null,
-      insertion3: values.get(KPI_LABELS[5]) ?? null,
+      output: getAvg(values.get(KPI_LABELS[0])),
+      scrapRate: getAvg(values.get(KPI_LABELS[1])),
+      oee: getAvg(values.get(KPI_LABELS[2])),
+      insertion1: getAvg(values.get(KPI_LABELS[3])),
+      insertion2: getAvg(values.get(KPI_LABELS[4])),
+      insertion3: getAvg(values.get(KPI_LABELS[5])),
     }))
 }
 

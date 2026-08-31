@@ -10,7 +10,6 @@ import { ErrorState } from '../components/ui/ErrorState'
 import { useToast } from '../contexts/ToastContext'
 import { Modal } from '../components/ui/Modal'
 import { ConfirmModal } from '../components/ui/ConfirmModal'
-import { LOCATIONS } from '../lib/constants'
 import { FolderKanban, Plus, Pencil, Trash2, Layers, MapPin } from 'lucide-react'
 import type { Project, ProjectSet } from '../types'
 
@@ -40,6 +39,14 @@ export default function ProjectManagement() {
 
   const [deletingSet, setDeletingSet] = useState<{ project: Project; set: ProjectSet } | null>(null)
 
+  // Fetch dynamic locations
+  const { data: locationsData } = useQuery({
+    queryKey: ['locations'],
+    queryFn: () => projectsApi.getLocations(),
+  })
+  const dynamicLocations = locationsData || []
+  const filterLocations = ['All', ...dynamicLocations]
+
   // Fetch projects query
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['projects', locationFilter],
@@ -51,16 +58,16 @@ export default function ProjectManagement() {
   const createProjectMutation = useMutation({
     mutationFn: () => projectsApi.create({
       name: projectName.trim(),
-      location: projectLocation,
+      location: projectLocation.trim() || 'Unknown',
       initial_sets_count: initialSetsCount,
     }),
     onSuccess: () => {
       showSuccess(`Project "${projectName}" created successfully!`)
       setIsAddProjectOpen(false)
       setProjectName('')
-      setProjectLocation('Morocco')
-      setInitialSetsCount(2)
+      setProjectLocation('')
       queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: ['locations'] })
     },
     onError: (err) => showError(err, 'Failed to Create Project'),
   })
@@ -71,13 +78,14 @@ export default function ProjectManagement() {
       if (!editingProject) return Promise.reject()
       return projectsApi.update(editingProject.id, {
         name: editName.trim(),
-        location: editLocation,
+        location: editLocation.trim() || 'Unknown',
       })
     },
     onSuccess: () => {
       showSuccess('Project updated successfully!')
       setEditingProject(null)
       queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: ['locations'] })
     },
     onError: (err) => showError(err, 'Failed to Update Project'),
   })
@@ -171,7 +179,7 @@ export default function ProjectManagement() {
               <Dropdown<string>
                 label="Location Filter"
                 value={locationFilter}
-                options={LOCATIONS.map(l => ({ value: l, label: l }))}
+                options={filterLocations.map(l => ({ value: l, label: l }))}
                 onChange={setLocationFilter}
                 className="min-w-[180px]"
               />
@@ -301,11 +309,13 @@ export default function ProjectManagement() {
             value={projectName}
             onChange={(e) => setProjectName(e.target.value)}
           />
-          <Dropdown<string>
+          <Input
+            id="proj-location"
             label="Location"
+            list="locations-list"
+            placeholder="e.g. Morocco, Mexico..."
             value={projectLocation}
-            options={LOCATIONS.filter(l => l !== 'All').map(l => ({ value: l, label: l }))}
-            onChange={setProjectLocation}
+            onChange={(e) => setProjectLocation(e.target.value)}
           />
           <Input
             id="initial-sets"
@@ -342,11 +352,13 @@ export default function ProjectManagement() {
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
           />
-          <Dropdown<string>
+          <Input
+            id="edit-proj-location"
             label="Location"
+            list="locations-list"
+            placeholder="e.g. Morocco, Mexico..."
             value={editLocation}
-            options={LOCATIONS.filter(l => l !== 'All').map(l => ({ value: l, label: l }))}
-            onChange={setEditLocation}
+            onChange={(e) => setEditLocation(e.target.value)}
           />
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setEditingProject(null)}>Cancel</Button>
@@ -439,6 +451,13 @@ export default function ProjectManagement() {
         variant="delete"
         loading={deleteSetMutation.isPending}
       />
+
+      {/* Datalist for location inputs */}
+      <datalist id="locations-list">
+        {dynamicLocations.map(loc => (
+          <option key={loc} value={loc} />
+        ))}
+      </datalist>
     </main>
   )
 }

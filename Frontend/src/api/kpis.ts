@@ -24,14 +24,23 @@ export const kpisApi = {
   getDefinitions: () =>
     client.get<KPIDefinition[]>('/kpis/definitions').then((r) => r.data),
 
-  getRecords: (projectId: string, period?: string, isoYear?: number, isoWeek?: number, kpiId?: string, setId?: string) => {
+  getRecords: async (projectId: string, period?: string, isoYear?: number, isoWeek?: number, kpiId?: string, setId?: string) => {
     const params = new URLSearchParams({ project_id: projectId })
     if (period) params.set('period', period)
     if (isoYear) params.set('iso_year', String(isoYear))
     if (isoWeek) params.set('iso_week', String(isoWeek))
     if (kpiId) params.set('kpi_id', kpiId)
     if (setId) params.set('set_id', setId)
-    return client.get<KPIRecord[]>(`/kpis/records?${params}`).then((r) => r.data)
+
+    const res = await client.get<{ definitions: KPIDefinition[]; records: Omit<KPIRecord, 'kpi_definition'>[] }>(
+      `/kpis/records?${params}`
+    ).then((r) => r.data)
+
+    const defMap = new Map(res.definitions.map(d => [d.id, d]))
+    return res.records.map(r => ({
+      ...r,
+      kpi_definition: defMap.get(r.kpi_id) || null
+    })) as KPIRecord[]
   },
 
   createRecordsBulk: (records: KPIRecordBulkCreateItem[]) =>

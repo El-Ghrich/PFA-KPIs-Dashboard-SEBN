@@ -11,7 +11,8 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { ErrorState } from '../components/ui/ErrorState'
 import { useToast } from '../contexts/ToastContext'
 import { HighlightEditor, type HighlightEditorItem } from '../components/HighlightEditor'
-import { DEFAULT_YEAR, YEARS } from '../lib/constants'
+import { YEARS } from '../lib/constants'
+import { useSettings } from '../hooks/useSettings'
 import { getCurrentISOWeek, isoWeekRange, mondayOfISOWeek, weekLabelFromNumber } from '../lib/isoDate'
 import { formatDateRange } from '../lib/format'
 import type { KPIRecord } from '../types'
@@ -37,7 +38,8 @@ export default function WeeklyEntry() {
 
   const [projectId, setProjectId] = useState('')
   const [setId, setSetId] = useState('')
-  const [year, setYear] = useState(DEFAULT_YEAR)
+  const { settings } = useSettings()
+  const [year, setYear] = useState(settings.defaultYear)
   const [week, setWeek] = useState(getCurrentISOWeek())
   const [values, setValues] = useState<Record<string, string>>({})
   const [good, setGood] = useState<HighlightEditorItem[]>([])

@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useSidebar } from '../contexts/SidebarContext'
 import { Link, useLocation } from 'react-router-dom'
-import { X, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { X, PanelLeftClose, PanelLeftOpen, Settings as SettingsIcon } from 'lucide-react'
 
 export default function Sidebar() {
   const { user, logout } = useAuth()
@@ -22,6 +22,7 @@ export default function Sidebar() {
     { href: '/projects', label: 'Project Management', icon: <FolderKanbanIcon />, active: location.pathname === '/projects' },
     ...(isSuperAdmin ? [{ href: '/users', label: 'User Management', icon: <UsersIcon />, active: location.pathname === '/users' }] : []),
     { href: '/api-keys', label: 'API Keys', icon: <KeyIcon />, active: location.pathname === '/api-keys' },
+    { href: '/settings', label: 'Settings', icon: <SettingsIcon />, active: location.pathname === '/settings' },
   ] : []
 
   // Close sidebar on navigation (mobile only)

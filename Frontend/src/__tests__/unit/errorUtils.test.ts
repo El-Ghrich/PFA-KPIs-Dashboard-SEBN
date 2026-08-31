@@ -14,7 +14,7 @@ describe('parseApiError', () => {
     const error = new AxiosError('Network Error', 'ERR_NETWORK')
     const res = parseApiError(error)
 
-    expect(res.title).toBe('Backend Unreachable')
+    expect(res.title).toBe('Server Unreachable')
     expect(res.message).toContain('Unable to connect to the server')
     expect(res.isNetworkError).toBe(true)
     expect(res.code).toBe('ERR_NETWORK')

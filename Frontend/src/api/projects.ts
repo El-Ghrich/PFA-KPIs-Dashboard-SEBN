@@ -21,6 +21,8 @@ export const projectsApi = {
     return client.get<Paginated<Project>>(`/projects?${params}`).then((r) => r.data)
   },
 
+  getLocations: () => client.get<string[]>('/projects/locations').then((r) => r.data),
+
   get: (id: string, includeKpis = false) => {
     const params = new URLSearchParams()
     if (includeKpis) params.set('include_kpis', 'true')

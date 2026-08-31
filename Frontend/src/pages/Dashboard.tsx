@@ -4,7 +4,7 @@ import { projectsApi } from '../api/projects'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ErrorState } from '../components/ui/ErrorState'
 import { useBreakpoint } from '../hooks/useBreakpoint'
-import { BREAKPOINT_DESKTOP, CHART_WEEKS_DESKTOP, CHART_WEEKS_MOBILE, DEFAULT_PROJECT_NAME } from '../lib/constants'
+import { BREAKPOINT_DESKTOP } from '../lib/constants'
 import { DashboardHeader } from '../features/dashboard/DashboardHeader'
 import { DashboardToolbar } from '../features/dashboard/DashboardToolbar'
 import { KpiGrid } from '../features/dashboard/KpiGrid'
@@ -13,10 +13,12 @@ import { KeyTakeawaysSection } from '../features/dashboard/KeyTakeawaysSection'
 import { buildDefaultFilters } from '../features/dashboard/filters'
 import { useDashboardData } from '../features/dashboard/useDashboardData'
 import { buildChartWeekData, computeKpis, groupRecords, splitHighlights } from '../features/dashboard/transformers'
+import { useSettings } from '../hooks/useSettings'
 import type { FilterState } from '../types'
 
 export default function Dashboard() {
-  const [filters, setFilters] = useState<FilterState>(() => buildDefaultFilters([]))
+  const { settings } = useSettings()
+  const [filters, setFilters] = useState<FilterState>(() => buildDefaultFilters([], settings))
   const [projects, setProjects] = useState<any[]>([])
   const [isProjectsLoading, setIsProjectsLoading] = useState(true)
   const [projectsError, setProjectsError] = useState<Error | null>(null)
@@ -42,18 +44,18 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (filters.projectId || projects.length === 0) return
-    const defaultProj = projects.find(p => p.name === DEFAULT_PROJECT_NAME) || projects[0]
+    const defaultProj = projects.find(p => p.name === settings.defaultProjectName) || projects[0]
     setFilters(prev => (prev.projectId ? prev : { ...prev, projectId: defaultProj.id }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.projectId, projects])
+  }, [filters.projectId, projects, settings.defaultProjectName])
 
   const { data, isLoading, isError, error, refetch } = useDashboardData(filters)
 
   const allWeekData = useMemo(() => groupRecords(data?.records ?? []), [data?.records])
 
   const chartWeekData = useMemo(
-    () => buildChartWeekData(allWeekData, filters.week, isDesktop ? CHART_WEEKS_DESKTOP : CHART_WEEKS_MOBILE),
-    [allWeekData, filters.week, isDesktop],
+    () => buildChartWeekData(allWeekData, filters.week, isDesktop ? settings.chartWeeksDesktop : settings.chartWeeksMobile),
+    [allWeekData, filters.week, isDesktop, settings.chartWeeksDesktop, settings.chartWeeksMobile],
   )
 
   const { kpiList, compareDiffValues } = useMemo(

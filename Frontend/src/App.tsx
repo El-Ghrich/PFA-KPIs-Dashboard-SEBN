@@ -12,6 +12,8 @@ import BulkDataEntry from './pages/BulkDataEntry'
 import UserManagement from './pages/UserManagement'
 import ApiKeyManagement from './pages/ApiKeyManagement'
 import ProjectManagement from './pages/ProjectManagement'
+import Settings from './pages/Settings'
+import { Lock } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 // ── Public layout for guests (no sidebar) ──────────────────────────────────
@@ -21,10 +23,11 @@ function PublicLayout({ children }: { children?: ReactNode }) {
       {children ?? <Outlet />}
       <Link
         to="/login"
-        title="Admin login"
-        className="absolute bottom-4 right-4 z-10 text-[11px] text-on-surface-variant/40 hover:text-on-surface-variant transition-colors select-none"
+        title="Admin Sign In"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-30 inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-full bg-white/95 hover:bg-white text-on-surface border border-border-card shadow-md hover:shadow-lg hover:border-primary/30 backdrop-blur-md transition-all duration-200 group select-none"
       >
-        Admin
+        <Lock className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+        <span>Admin Sign In</span>
       </Link>
     </div>
   )
@@ -106,6 +109,7 @@ export default function App() {
                 <Route path="/projects" element={<AdminRequired><ProjectManagement /></AdminRequired>} />
                 <Route path="/users" element={<SuperAdminRequired><UserManagement /></SuperAdminRequired>} />
                 <Route path="/api-keys" element={<AdminRequired><ApiKeyManagement /></AdminRequired>} />
+                <Route path="/settings" element={<AdminRequired><Settings /></AdminRequired>} />
               </Route>
 
               <Route path="*" element={<Navigate to="/" replace />} />

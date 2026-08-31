@@ -7,6 +7,7 @@ from app.domains.kpis.schemas import (
     KPIRecordCreate, KPIRecordUpdate,
     KPIRecordWriteResponse, KPIRecordResponse,
     KPIRecordBulkCreate, KPIRecordBulkResponse,
+    KPIRecordsListResponse,
     RecordPeriodEnum,
 )
 from app.domains.kpis.service import KPIService
@@ -97,17 +98,28 @@ async def create_kpi_records_bulk(
 # PROJECT-SCOPED QUERY
 # ==========================================
 
-@router.get("/records", response_model=list[KPIRecordResponse])
+@router.get("/records", response_model=KPIRecordsListResponse)
 async def list_project_kpi_records(
     project_id: str = Query(..., description="Filter by project ID"),
     period: RecordPeriodEnum | None = Query(None, description="Filter by period (DAILY or WEEKLY)"),
     iso_year: int | None = Query(None, description="ISO year (e.g. 2026)"),
     iso_week: int | None = Query(None, description="ISO week number (1-53)"),
     kpi_id: str | None = Query(None, description="Filter by KPI definition ID"),
+    set_id: str | None = Query(None, description="Filter by Set ID"),
     db: AsyncSession = Depends(get_db),
 ):
-    return await KPIService.get_project_records(
+    records = await KPIService.get_project_records(
         session=db, project_id=project_id,
         period=period, iso_year=iso_year, iso_week=iso_week,
-        kpi_id=kpi_id,
+        kpi_id=kpi_id, set_id=set_id
+    )
+    
+    definitions_dict = {}
+    for r in records:
+        if r.kpi_definition and r.kpi_definition.id not in definitions_dict:
+            definitions_dict[r.kpi_definition.id] = r.kpi_definition
+            
+    return KPIRecordsListResponse(
+        definitions=list(definitions_dict.values()),
+        records=records
     )

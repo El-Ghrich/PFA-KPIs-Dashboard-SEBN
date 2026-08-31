@@ -31,6 +31,15 @@ async def create_project(
     return await ProjectService.create_project(session=db, data=project_in)
 
 
+@router.get("/locations", response_model=list[str])
+async def list_project_locations(db: AsyncSession = Depends(get_db)):
+    """
+    Retrieve a list of distinct project locations.
+    Public endpoint — no authentication required.
+    """
+    return await ProjectService.get_locations(session=db)
+
+
 @router.get("", response_model=ProjectListResponse)
 async def list_projects(
     page: int = Query(1, ge=1, description="Page number"),

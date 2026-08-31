@@ -40,6 +40,14 @@ class ProjectService:
         return await ProjectService.get_project(session, uuid.UUID(new_project.id))
 
     @staticmethod
+    async def get_locations(session: AsyncSession) -> list[str]:
+        """Retrieves a list of distinct project locations."""
+        query = select(Project.location).where(Project.is_deleted == False).distinct()
+        result = await session.execute(query)
+        locations = [loc for loc in result.scalars().all() if loc and loc.strip()]
+        return sorted(locations)
+
+    @staticmethod
     async def get_projects(
         session: AsyncSession, 
         page: int = 1, 

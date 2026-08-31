@@ -9,7 +9,7 @@ describe('ErrorState Component', () => {
     const error = new AxiosError('Network Error', 'ERR_NETWORK')
     render(<ErrorState error={error} />)
 
-    expect(screen.getByText('Backend Unreachable')).toBeInTheDocument()
+    expect(screen.getByText('Server Unreachable')).toBeInTheDocument()
     expect(screen.getByText(/unable to connect to the server/i)).toBeInTheDocument()
   })
 
