@@ -98,6 +98,7 @@ export default function App() {
             <Routes>
               {/* ── Dashboard: shows AdminLayout if logged in, PublicLayout if guest ── */}
               <Route path="/" element={<DashboardRoute />} />
+              <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
               {/* ── Auth: login page ── */}
               <Route path="/login" element={<Login />} />
