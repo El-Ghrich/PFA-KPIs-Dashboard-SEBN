@@ -12,9 +12,17 @@ interface DropdownProps<T extends string | number> {
   options: DropdownOption<T>[]
   onChange: (value: T) => void
   className?: string
+  disabled?: boolean
 }
 
-export function Dropdown<T extends string | number>({ label, value, options, onChange, className = '' }: DropdownProps<T>) {
+export function Dropdown<T extends string | number>({
+  label,
+  value,
+  options,
+  onChange,
+  className = '',
+  disabled = false,
+}: DropdownProps<T>) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -33,8 +41,12 @@ export function Dropdown<T extends string | number>({ label, value, options, onC
       <label className="text-xs font-medium text-gray-500">{label}</label>
       <div className="relative" ref={ref}>
         <button
-          onClick={() => setOpen(!open)}
-          className="w-full flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-border-card shadow-[0_1px_3px_rgba(0,0,0,0.06)] min-w-0 sm:min-w-[130px] text-[13px] font-medium text-on-surface hover:bg-surface-container transition-colors duration-200"
+          type="button"
+          disabled={disabled}
+          onClick={() => !disabled && setOpen(!open)}
+          className={`w-full flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-border-card shadow-[0_1px_3px_rgba(0,0,0,0.06)] min-w-0 sm:min-w-[130px] text-[13px] font-medium text-on-surface hover:bg-surface-container transition-colors duration-200 ${
+            disabled ? 'opacity-60 cursor-not-allowed bg-surface-container/50' : ''
+          }`}
         >
           <span className="flex-1 text-left truncate">{selected?.label || String(value)}</span>
           <ChevronDown className="w-3 h-3 text-on-surface-variant/30 shrink-0" />

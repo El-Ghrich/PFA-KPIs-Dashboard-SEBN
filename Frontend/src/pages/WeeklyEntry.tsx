@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { projectsApi } from '../api/projects'
 import { kpisApi } from '../api/kpis'
@@ -9,6 +10,7 @@ import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ErrorState } from '../components/ui/ErrorState'
+import { Spinner } from '../components/ui/Spinner'
 import { useToast } from '../contexts/ToastContext'
 import { HighlightEditor, type HighlightEditorItem } from '../components/HighlightEditor'
 import { YEARS } from '../lib/constants'
@@ -16,7 +18,7 @@ import { useSettings } from '../hooks/useSettings'
 import { getCurrentISOWeek, isoWeekRange, mondayOfISOWeek, weekLabelFromNumber } from '../lib/isoDate'
 import { formatDateRange } from '../lib/format'
 import type { KPIRecord } from '../types'
-import { Layers, Save } from 'lucide-react'
+import { Layers, Save, ArrowRight } from 'lucide-react'
 
 const WEEK_OPTIONS = Array.from({ length: 53 }, (_, i) => ({
   value: i + 1,
@@ -33,6 +35,7 @@ function toISODate(date: Date): string {
 }
 
 export default function WeeklyEntry() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { showSuccess, showError } = useToast()
 
@@ -196,6 +199,11 @@ export default function WeeklyEntry() {
   const selectedSet = projectSets.find(s => s.id === setId)
   const anyExisting = records.length > 0
   const queryError = projectsQuery.error || definitionsQuery.error || recordsQuery.error || highlightsQuery.error
+  const isRetryingQueries =
+    projectsQuery.isRefetching ||
+    definitionsQuery.isRefetching ||
+    recordsQuery.isRefetching ||
+    highlightsQuery.isRefetching
 
   return (
     <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
@@ -216,6 +224,7 @@ export default function WeeklyEntry() {
                 value={projectId}
                 options={projects.map(p => ({ value: p.id, label: `${p.name} (${p.location})` }))}
                 onChange={setProjectId}
+                disabled={saveMutation.isPending}
                 className="min-w-[220px]"
               />
               <Dropdown<number>
@@ -223,12 +232,14 @@ export default function WeeklyEntry() {
                 value={year}
                 options={YEAR_OPTIONS}
                 onChange={setYear}
+                disabled={saveMutation.isPending}
               />
               <Dropdown<number>
                 label="ISO Week"
                 value={week}
                 options={WEEK_OPTIONS}
                 onChange={setWeek}
+                disabled={saveMutation.isPending}
               />
               {enabled && (
                 <p className="text-[13px] text-on-surface-variant font-medium pb-2">
@@ -241,6 +252,7 @@ export default function WeeklyEntry() {
           {queryError ? (
             <ErrorState
               error={queryError}
+              isRetrying={isRetryingQueries}
               onRetry={() => {
                 projectsQuery.refetch()
                 definitionsQuery.refetch()
@@ -248,12 +260,36 @@ export default function WeeklyEntry() {
                 if (projectId) highlightsQuery.refetch()
               }}
             />
+          ) : projectsQuery.isLoading ? (
+            <Card className="h-64 flex flex-col items-center justify-center gap-3">
+              <Spinner size="md" />
+              <p className="text-[14px] text-on-surface-variant font-medium">Loading projects and configurations...</p>
+            </Card>
           ) : !projectId ? (
             <EmptyState className="h-64" message="Select a project to load data" />
           ) : projectSets.length === 0 ? (
-            <EmptyState className="h-64" message="No sets configured for this project. Please add a set in Project Management." />
+            <Card className="p-8 text-center flex flex-col items-center justify-center gap-4">
+              <div className="p-3 rounded-full bg-amber-500/10 text-amber-600">
+                <Layers className="w-8 h-8" />
+              </div>
+              <div className="space-y-1 max-w-md">
+                <h3 className="text-base font-semibold text-on-surface">No Sets Configured</h3>
+                <p className="text-sm text-on-surface-variant">
+                  Project <span className="font-semibold text-on-surface">{selectedProject?.name}</span> does not have any machine sets configured yet. A set is required to record weekly KPIs.
+                </p>
+              </div>
+              <Button onClick={() => navigate('/projects')} variant="outline" className="flex items-center gap-2">
+                <span>Manage Sets in Project Management</span>
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Card>
           ) : definitionsQuery.isLoading || recordsQuery.isLoading || highlightsQuery.isLoading ? (
-            <EmptyState className="h-64" message="Loading week data..." />
+            <Card className="h-64 flex flex-col items-center justify-center gap-3">
+              <Spinner size="md" />
+              <p className="text-[14px] text-on-surface-variant font-medium">
+                Loading week data for {selectedProject?.name} ({selectedSet?.name || 'Set'})...
+              </p>
+            </Card>
           ) : (
             <Card>
               {/* Window-like Set Selector Bar */}
@@ -268,9 +304,10 @@ export default function WeeklyEntry() {
                     return (
                       <button
                         key={s.id}
+                        disabled={saveMutation.isPending}
                         onClick={() => setSetId(s.id)}
                         className={`
-                          px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center gap-2 whitespace-nowrap
+                          px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center gap-2 whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed
                           ${isActive
                             ? 'bg-white text-primary shadow-sm border border-primary/20 scale-[1.02]'
                             : 'text-on-surface-variant hover:text-on-surface hover:bg-white/60'
@@ -311,6 +348,7 @@ export default function WeeklyEntry() {
                       type="number"
                       inputMode="decimal"
                       step="any"
+                      disabled={saveMutation.isPending}
                       value={values[def.id] ?? ''}
                       suffix={<span className="text-[12px] font-semibold text-on-surface-variant/60">{def.unit}</span>}
                       onChange={e => setValues(prev => ({ ...prev, [def.id]: e.target.value }))}
@@ -324,13 +362,32 @@ export default function WeeklyEntry() {
                 <HighlightEditor
                   good={good}
                   bad={bad}
+                  disabled={saveMutation.isPending}
                   onChange={(status, items) => (status === 'GOOD' ? setGood(items) : setBad(items))}
                 />
               </div>
 
+              {/* Inline Save Error Banner if mutation failed */}
+              {saveMutation.isError && (
+                <div className="mb-4">
+                  <ErrorState
+                    compact
+                    error={saveMutation.error}
+                    title="Failed to Save KPI Entry"
+                    onRetry={() => saveMutation.mutate()}
+                    isRetrying={saveMutation.isPending}
+                  />
+                </div>
+              )}
+
               {/* Save Bar */}
               <div className="flex items-center gap-3 pt-2">
-                <Button onClick={() => saveMutation.mutate()} loading={saveMutation.isPending} className="flex items-center gap-2">
+                <Button
+                  onClick={() => saveMutation.mutate()}
+                  loading={saveMutation.isPending}
+                  disabled={saveMutation.isPending}
+                  className="flex items-center gap-2"
+                >
                   <Save className="w-4 h-4" />
                   {anyExisting ? `Update ${selectedSet?.name}` : `Save ${selectedSet?.name}`}
                 </Button>

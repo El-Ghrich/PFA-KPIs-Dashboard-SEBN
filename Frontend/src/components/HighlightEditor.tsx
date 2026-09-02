@@ -13,6 +13,7 @@ interface HighlightEditorProps {
   good: HighlightEditorItem[]
   bad: HighlightEditorItem[]
   onChange: (status: HighlightStatus, items: HighlightEditorItem[]) => void
+  disabled?: boolean
 }
 
 const TABS: { key: HighlightStatus; label: string; activeClassName: string }[] = [
@@ -20,7 +21,7 @@ const TABS: { key: HighlightStatus; label: string; activeClassName: string }[] =
   { key: 'BAD', label: 'Bad highlights', activeClassName: 'bg-error text-on-error' },
 ]
 
-export function HighlightEditor({ good, bad, onChange }: HighlightEditorProps) {
+export function HighlightEditor({ good, bad, onChange, disabled = false }: HighlightEditorProps) {
   const [tab, setTab] = useState<HighlightStatus>('GOOD')
   const items = tab === 'GOOD' ? good : bad
   const setItems = (next: HighlightEditorItem[]) => onChange(tab, next)
@@ -63,10 +64,11 @@ export function HighlightEditor({ good, bad, onChange }: HighlightEditorProps) {
           <div key={item.localId} className="flex items-start gap-2">
             <textarea
               value={item.text}
+              disabled={disabled}
               onChange={e => updateItem(item.localId, e.target.value)}
               rows={2}
               placeholder={`Add a ${tab === 'GOOD' ? 'good' : 'bad'} highlight for this week`}
-              className={`flex-1 px-3 py-2.5 rounded-lg border text-[14px] text-on-surface bg-white focus:outline-none focus:ring-2 transition-colors duration-200 resize-y ${
+              className={`flex-1 px-3 py-2.5 rounded-lg border text-[14px] text-on-surface bg-white focus:outline-none focus:ring-2 transition-colors duration-200 resize-y disabled:opacity-60 disabled:bg-surface-container/50 ${
                 tab === 'GOOD'
                   ? 'border-outline-variant focus:border-tertiary focus:ring-tertiary/20'
                   : 'border-outline-variant focus:border-error focus:ring-error/20'
@@ -74,9 +76,10 @@ export function HighlightEditor({ good, bad, onChange }: HighlightEditorProps) {
             />
             <button
               type="button"
+              disabled={disabled}
               onClick={() => removeItem(item.localId)}
               title="Remove highlight"
-              className="mt-2 shrink-0 text-on-surface-variant/50 hover:text-error transition-colors"
+              className="mt-2 shrink-0 text-on-surface-variant/50 hover:text-error transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <X className="w-4 h-4" />
             </button>
@@ -85,8 +88,9 @@ export function HighlightEditor({ good, bad, onChange }: HighlightEditorProps) {
 
         <button
           type="button"
+          disabled={disabled}
           onClick={addItem}
-          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-dashed text-[12px] font-semibold transition-colors duration-200 self-start text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-dashed text-[12px] font-semibold transition-colors duration-200 self-start text-on-surface-variant hover:text-on-surface hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus className="w-3.5 h-3.5" />
           Add another {tab === 'GOOD' ? 'good' : 'bad'} highlight

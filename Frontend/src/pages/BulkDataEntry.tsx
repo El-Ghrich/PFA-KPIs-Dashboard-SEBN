@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import FilterBar from '../components/FilterBar'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { ErrorState } from '../components/ui/ErrorState'
+import { Spinner } from '../components/ui/Spinner'
 import { projectsApi } from '../api/projects'
 import { kpisApi, type KPIRecordBulkCreateItem } from '../api/kpis'
 import { useToast } from '../contexts/ToastContext'
@@ -12,9 +14,10 @@ import { buildDefaultFilters } from '../features/dashboard/filters'
 import { useSettings } from '../hooks/useSettings'
 import { mondayOfISOWeek, weekLabelFromNumber } from '../lib/isoDate'
 import type { FilterState, Project, KPIDefinition } from '../types'
-import { ClipboardPaste, CheckCircle2, UploadCloud, Trash2, RotateCcw, AlertCircle } from 'lucide-react'
+import { ClipboardPaste, CheckCircle2, UploadCloud, Trash2, RotateCcw, AlertCircle, ArrowRight } from 'lucide-react'
 
 export default function BulkDataEntry() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { showSuccess, showError } = useToast()
 
@@ -152,10 +155,56 @@ export default function BulkDataEntry() {
       )
       if (partial) return partial.id
 
-      return selectedProject.sets[0]?.id
+      return undefined
     },
     [selectedProject],
   )
+
+  // Validate each row for invalid week numbers, unrecognized sets, or negative numbers
+  const rowValidation = useMemo(() => {
+    return rows.map((r) => {
+      const isWeekValid = r.weekNum !== null && Number.isInteger(r.weekNum) && r.weekNum >= 1 && r.weekNum <= 53
+      const resolvedSetId = resolveSetId(r.setRaw)
+      const isSetValid = Boolean(resolvedSetId)
+      const hasAtLeastOneValue =
+        r.output !== null || r.scrap !== null || r.oee !== null || r.cim1 !== null || r.cim2 !== null || r.cim3 !== null
+      const hasNegativeValue =
+        (r.output !== null && r.output < 0) ||
+        (r.scrap !== null && r.scrap < 0) ||
+        (r.oee !== null && r.oee < 0) ||
+        (r.cim1 !== null && r.cim1 < 0) ||
+        (r.cim2 !== null && r.cim2 < 0) ||
+        (r.cim3 !== null && r.cim3 < 0)
+
+      const errors: string[] = []
+      if (!isWeekValid) errors.push('Week must be an integer between 1 and 53')
+      if (!isSetValid) errors.push(`Unrecognized machine set "${r.setRaw}"`)
+      if (!hasAtLeastOneValue) errors.push('At least one KPI value must be provided')
+      if (hasNegativeValue) errors.push('KPI values cannot be negative')
+
+      return {
+        id: r.id,
+        isWeekValid,
+        isSetValid,
+        hasAtLeastOneValue,
+        hasNegativeValue,
+        isValid: errors.length === 0,
+        errors,
+      }
+    })
+  }, [rows, resolveSetId])
+
+  const invalidRowsCount = useMemo(() => {
+    return rowValidation.filter((v) => !v.isValid).length
+  }, [rowValidation])
+
+  const validationMap = useMemo(() => {
+    const map: Record<string, typeof rowValidation[0]> = {}
+    for (const v of rowValidation) {
+      map[v.id] = v
+    }
+    return map
+  }, [rowValidation])
 
   const handleUploadSubmit = () => {
     if (!filters.projectId) {
@@ -164,11 +213,26 @@ export default function BulkDataEntry() {
     }
     if (rows.length === 0) return
 
+    if (kpiDefsQuery.isLoading) {
+      showError('KPI definitions are still loading. Please wait a moment.', 'Loading Definitions')
+      return
+    }
+    if (kpiDefsQuery.isError) {
+      showError('KPI definitions could not be loaded. Please refresh before uploading.', 'Error')
+      return
+    }
+
+    if (invalidRowsCount > 0) {
+      showError(`Please resolve validation issues in ${invalidRowsCount} row(s) before uploading.`, 'Validation Errors')
+      return
+    }
+
     const recordsToCreate: KPIRecordBulkCreateItem[] = []
 
     for (const r of rows) {
       const week = r.weekNum || 1
       const setId = resolveSetId(r.setRaw)
+      if (!setId) continue
       const recordDateObj = mondayOfISOWeek(filters.year, week)
       const recordDateStr = recordDateObj.toISOString().split('T')[0]
 
@@ -197,6 +261,11 @@ export default function BulkDataEntry() {
       }
     }
 
+    if (recordsToCreate.length === 0) {
+      showError('No valid KPI records could be mapped. Check your KPI definitions and machine sets.', 'Upload Failed')
+      return
+    }
+
     bulkUploadMutation.mutate(recordsToCreate)
   }
 
@@ -209,9 +278,10 @@ export default function BulkDataEntry() {
   if (isProjectsLoading) {
     return (
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6">
-          <Card className="h-64 flex items-center justify-center">
-            <p className="text-on-surface-variant">Loading projects...</p>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 sm:p-8">
+          <Card className="h-64 flex flex-col items-center justify-center gap-3">
+            <Spinner size="md" />
+            <p className="text-[14px] text-on-surface-variant font-medium">Loading projects and configurations...</p>
           </Card>
         </div>
       </main>
@@ -221,8 +291,8 @@ export default function BulkDataEntry() {
   if (projectsError) {
     return (
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6">
-          <ErrorState error={projectsError} onRetry={fetchProjects} />
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 sm:p-8">
+          <ErrorState error={projectsError} onRetry={fetchProjects} isRetrying={isProjectsLoading} />
         </div>
       </main>
     )
@@ -244,15 +314,57 @@ export default function BulkDataEntry() {
             {/* Last Updated Week Badge */}
             <div className="flex items-center gap-2">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[13px] font-semibold">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span>
-                  {lastRecordedWeekInfo !== null
-                    ? `Last updated: ${weekLabelFromNumber(lastRecordedWeekInfo)}`
-                    : 'No data recorded yet'}
-                </span>
+                {projectRecordsQuery.isLoading ? (
+                  <>
+                    <Spinner size="sm" />
+                    <span className="text-on-surface-variant text-[12px]">Checking recorded weeks...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    <span>
+                      {lastRecordedWeekInfo !== null
+                        ? `Last updated: ${weekLabelFromNumber(lastRecordedWeekInfo)}`
+                        : 'No data recorded yet'}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
+
+          {/* Project with No Sets Alert */}
+          {selectedProject && (!selectedProject.sets || selectedProject.sets.length === 0) && (
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-800 text-[13px]">
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+                <div>
+                  <p className="font-semibold text-amber-900">No machine sets configured for this project</p>
+                  <p className="text-amber-700 text-[12px]">Please create at least one set in Project Management before pasting or uploading data.</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/projects')}
+                className="py-1.5 px-3 text-xs shrink-0 self-start sm:self-auto flex items-center gap-1.5"
+              >
+                <span>Manage Sets</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          )}
+
+          {/* KPI Definitions Error State */}
+          {kpiDefsQuery.isError && (
+            <ErrorState
+              compact
+              error={kpiDefsQuery.error}
+              title="Failed to Load KPI Definitions"
+              message="KPI definitions could not be retrieved from the server. Data mapping will not work until reloaded."
+              onRetry={() => kpiDefsQuery.refetch()}
+              isRetrying={kpiDefsQuery.isRefetching}
+            />
+          )}
 
           {/* Filter Bar */}
           <FilterBar
@@ -323,11 +435,42 @@ export default function BulkDataEntry() {
                     Review and edit cell values below before confirming upload
                   </p>
                 </div>
-                <Button variant="secondary" onClick={clearRows} className="py-1.5 text-[12.5px] flex items-center gap-1.5">
+                <Button
+                  variant="secondary"
+                  onClick={clearRows}
+                  disabled={bulkUploadMutation.isPending}
+                  className="py-1.5 text-[12.5px] flex items-center gap-1.5"
+                >
                   <RotateCcw className="w-3.5 h-3.5" />
                   Clear Data
                 </Button>
               </div>
+
+              {/* Validation Warning Alert if any row has errors */}
+              {invalidRowsCount > 0 && (
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3 text-amber-800 text-[13px]">
+                  <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="font-semibold text-amber-900">
+                      {invalidRowsCount} row{invalidRowsCount > 1 ? 's have' : ' has'} validation issues
+                    </p>
+                    <p className="text-amber-700 text-[12.5px]">
+                      Please correct the highlighted cells (e.g. week number 1-53, non-negative numbers, or unrecognized machine sets) before uploading.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Upload Mutation Error Banner */}
+              {bulkUploadMutation.isError && (
+                <ErrorState
+                  compact
+                  error={bulkUploadMutation.error}
+                  title="Bulk Upload Failed"
+                  onRetry={handleUploadSubmit}
+                  isRetrying={bulkUploadMutation.isPending}
+                />
+              )}
 
               {/* Table */}
               <div className="overflow-x-auto border border-border-card rounded-lg">
@@ -346,118 +489,164 @@ export default function BulkDataEntry() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border-card bg-white">
-                    {rows.map((row) => (
-                      <tr key={row.id} className="hover:bg-surface-container/30">
-                        {/* Set */}
-                        <td className="px-3 py-2">
-                          <input
-                            type="text"
-                            value={row.setRaw}
-                            onChange={(e) => updateCell(row.id, 'setRaw', e.target.value)}
-                            className="w-24 px-2 py-1 border border-outline-variant rounded text-[13px] bg-surface focus:outline-none focus:border-primary"
-                          />
-                        </td>
-                        {/* Week */}
-                        <td className="px-3 py-2">
-                          <input
-                            type="number"
-                            value={row.weekNum ?? ''}
-                            onChange={(e) =>
-                              updateCell(row.id, 'weekNum', e.target.value ? parseInt(e.target.value, 10) : null)
-                            }
-                            className="w-20 px-2 py-1 border border-outline-variant rounded text-[13px] bg-surface focus:outline-none focus:border-primary"
-                          />
-                        </td>
-                        {/* Output */}
-                        <td className="px-3 py-2">
-                          <input
-                            type="number"
-                            step="100"
-                            value={row.output ?? ''}
-                            onChange={(e) =>
-                              updateCell(row.id, 'output', e.target.value ? parseFloat(e.target.value) : null)
-                            }
-                            placeholder="null"
-                            className="w-24 px-2 py-1 border border-outline-variant rounded text-[13px] bg-surface focus:outline-none focus:border-primary"
-                          />
-                        </td>
-                        {/* Scrap */}
-                        <td className="px-3 py-2">
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={row.scrap ?? ''}
-                            onChange={(e) =>
-                              updateCell(row.id, 'scrap', e.target.value ? parseFloat(e.target.value) : null)
-                            }
-                            placeholder="null"
-                            className="w-24 px-2 py-1 border border-outline-variant rounded text-[13px] bg-surface focus:outline-none focus:border-primary"
-                          />
-                        </td>
-                        {/* OEE */}
-                        <td className="px-3 py-2">
-                          <input
-                            type="number"
-                            step="5"
-                            value={row.oee ?? ''}
-                            onChange={(e) =>
-                              updateCell(row.id, 'oee', e.target.value ? parseFloat(e.target.value) : null)
-                            }
-                            placeholder="null"
-                            className="w-24 px-2 py-1 border border-outline-variant rounded text-[13px] bg-surface focus:outline-none focus:border-primary"
-                          />
-                        </td>
-                        {/* CIM1 */}
-                        <td className="px-3 py-2">
-                          <input
-                            type="number"
-                            step="5"
-                            value={row.cim1 ?? ''}
-                            onChange={(e) =>
-                              updateCell(row.id, 'cim1', e.target.value ? parseFloat(e.target.value) : null)
-                            }
-                            placeholder="null"
-                            className="w-24 px-2 py-1 border border-outline-variant rounded text-[13px] bg-surface focus:outline-none focus:border-primary"
-                          />
-                        </td>
-                        {/* CIM2 */}
-                        <td className="px-3 py-2">
-                          <input
-                            type="number"
-                            step="5"
-                            value={row.cim2 ?? ''}
-                            onChange={(e) =>
-                              updateCell(row.id, 'cim2', e.target.value ? parseFloat(e.target.value) : null)
-                            }
-                            placeholder="null"
-                            className="w-24 px-2 py-1 border border-outline-variant rounded text-[13px] bg-surface focus:outline-none focus:border-primary"
-                          />
-                        </td>
-                        {/* CIM3 */}
-                        <td className="px-3 py-2">
-                          <input
-                            type="number"
-                            step="5"
-                            value={row.cim3 ?? ''}
-                            onChange={(e) =>
-                              updateCell(row.id, 'cim3', e.target.value ? parseFloat(e.target.value) : null)
-                            }
-                            placeholder="null"
-                            className="w-24 px-2 py-1 border border-outline-variant rounded text-[13px] bg-surface focus:outline-none focus:border-primary"
-                          />
-                        </td>
-                        {/* Action */}
-                        <td className="px-3 py-2 text-right">
-                          <button
-                            onClick={() => deleteRow(row.id)}
-                            className="p-1.5 text-on-surface-variant/40 hover:text-error hover:bg-error/10 rounded transition-colors"
-                            title="Delete row"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {rows.map((row) => {
+                      const val = validationMap[row.id]
+                      return (
+                        <tr key={row.id} className="hover:bg-surface-container/30">
+                          {/* Set */}
+                          <td className="px-3 py-2">
+                            <input
+                              type="text"
+                              value={row.setRaw}
+                              disabled={bulkUploadMutation.isPending}
+                              onChange={(e) => updateCell(row.id, 'setRaw', e.target.value)}
+                              title={val && !val.isSetValid ? 'Unrecognized set name for this project' : ''}
+                              className={`w-24 px-2 py-1 border rounded text-[13px] bg-surface focus:outline-none disabled:opacity-60 ${
+                                val && !val.isSetValid
+                                  ? 'border-error bg-error/5 text-error font-medium focus:border-error'
+                                  : 'border-outline-variant focus:border-primary'
+                              }`}
+                            />
+                          </td>
+                          {/* Week */}
+                          <td className="px-3 py-2">
+                            <input
+                              type="number"
+                              value={row.weekNum ?? ''}
+                              disabled={bulkUploadMutation.isPending}
+                              onChange={(e) =>
+                                updateCell(row.id, 'weekNum', e.target.value ? parseInt(e.target.value, 10) : null)
+                              }
+                              title={val && !val.isWeekValid ? 'Week must be an integer between 1 and 53' : ''}
+                              className={`w-20 px-2 py-1 border rounded text-[13px] bg-surface focus:outline-none disabled:opacity-60 ${
+                                val && !val.isWeekValid
+                                  ? 'border-error bg-error/5 text-error font-medium focus:border-error'
+                                  : 'border-outline-variant focus:border-primary'
+                              }`}
+                            />
+                          </td>
+                          {/* Output */}
+                          <td className="px-3 py-2">
+                            <input
+                              type="number"
+                              step="100"
+                              value={row.output ?? ''}
+                              disabled={bulkUploadMutation.isPending}
+                              onChange={(e) =>
+                                updateCell(row.id, 'output', e.target.value ? parseFloat(e.target.value) : null)
+                              }
+                              placeholder="null"
+                              className={`w-24 px-2 py-1 border rounded text-[13px] bg-surface focus:outline-none disabled:opacity-60 ${
+                                row.output !== null && row.output < 0
+                                  ? 'border-error bg-error/5 text-error'
+                                  : 'border-outline-variant focus:border-primary'
+                              }`}
+                            />
+                          </td>
+                          {/* Scrap */}
+                          <td className="px-3 py-2">
+                            <input
+                              type="number"
+                              step="0.1"
+                              value={row.scrap ?? ''}
+                              disabled={bulkUploadMutation.isPending}
+                              onChange={(e) =>
+                                updateCell(row.id, 'scrap', e.target.value ? parseFloat(e.target.value) : null)
+                              }
+                              placeholder="null"
+                              className={`w-24 px-2 py-1 border rounded text-[13px] bg-surface focus:outline-none disabled:opacity-60 ${
+                                row.scrap !== null && row.scrap < 0
+                                  ? 'border-error bg-error/5 text-error'
+                                  : 'border-outline-variant focus:border-primary'
+                              }`}
+                            />
+                          </td>
+                          {/* OEE */}
+                          <td className="px-3 py-2">
+                            <input
+                              type="number"
+                              step="5"
+                              value={row.oee ?? ''}
+                              disabled={bulkUploadMutation.isPending}
+                              onChange={(e) =>
+                                updateCell(row.id, 'oee', e.target.value ? parseFloat(e.target.value) : null)
+                              }
+                              placeholder="null"
+                              className={`w-24 px-2 py-1 border rounded text-[13px] bg-surface focus:outline-none disabled:opacity-60 ${
+                                row.oee !== null && row.oee < 0
+                                  ? 'border-error bg-error/5 text-error'
+                                  : 'border-outline-variant focus:border-primary'
+                              }`}
+                            />
+                          </td>
+                          {/* CIM1 */}
+                          <td className="px-3 py-2">
+                            <input
+                              type="number"
+                              step="5"
+                              value={row.cim1 ?? ''}
+                              disabled={bulkUploadMutation.isPending}
+                              onChange={(e) =>
+                                updateCell(row.id, 'cim1', e.target.value ? parseFloat(e.target.value) : null)
+                              }
+                              placeholder="null"
+                              className={`w-24 px-2 py-1 border rounded text-[13px] bg-surface focus:outline-none disabled:opacity-60 ${
+                                row.cim1 !== null && row.cim1 < 0
+                                  ? 'border-error bg-error/5 text-error'
+                                  : 'border-outline-variant focus:border-primary'
+                              }`}
+                            />
+                          </td>
+                          {/* CIM2 */}
+                          <td className="px-3 py-2">
+                            <input
+                              type="number"
+                              step="5"
+                              value={row.cim2 ?? ''}
+                              disabled={bulkUploadMutation.isPending}
+                              onChange={(e) =>
+                                updateCell(row.id, 'cim2', e.target.value ? parseFloat(e.target.value) : null)
+                              }
+                              placeholder="null"
+                              className={`w-24 px-2 py-1 border rounded text-[13px] bg-surface focus:outline-none disabled:opacity-60 ${
+                                row.cim2 !== null && row.cim2 < 0
+                                  ? 'border-error bg-error/5 text-error'
+                                  : 'border-outline-variant focus:border-primary'
+                              }`}
+                            />
+                          </td>
+                          {/* CIM3 */}
+                          <td className="px-3 py-2">
+                            <input
+                              type="number"
+                              step="5"
+                              value={row.cim3 ?? ''}
+                              disabled={bulkUploadMutation.isPending}
+                              onChange={(e) =>
+                                updateCell(row.id, 'cim3', e.target.value ? parseFloat(e.target.value) : null)
+                              }
+                              placeholder="null"
+                              className={`w-24 px-2 py-1 border rounded text-[13px] bg-surface focus:outline-none disabled:opacity-60 ${
+                                row.cim3 !== null && row.cim3 < 0
+                                  ? 'border-error bg-error/5 text-error'
+                                  : 'border-outline-variant focus:border-primary'
+                              }`}
+                            />
+                          </td>
+                          {/* Action */}
+                          <td className="px-3 py-2 text-right">
+                            <button
+                              onClick={() => deleteRow(row.id)}
+                              disabled={bulkUploadMutation.isPending}
+                              className="p-1.5 text-on-surface-variant/40 hover:text-error hover:bg-error/10 rounded transition-colors disabled:opacity-40"
+                              title="Delete row"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -467,6 +656,13 @@ export default function BulkDataEntry() {
                 <Button
                   onClick={handleUploadSubmit}
                   loading={bulkUploadMutation.isPending}
+                  disabled={
+                    bulkUploadMutation.isPending ||
+                    rows.length === 0 ||
+                    invalidRowsCount > 0 ||
+                    kpiDefsQuery.isLoading ||
+                    (selectedProject?.sets?.length ?? 0) === 0
+                  }
                   className="py-2.5 px-6 font-semibold flex items-center gap-2 text-[14px]"
                 >
                   <UploadCloud className="w-4 h-4" />
