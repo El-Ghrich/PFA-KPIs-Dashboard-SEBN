@@ -28,7 +28,9 @@ export default function FilterBar({ projects, filters, onChange, onWeekChange, h
   const selectedProject = projects.find(p => p.id === filters.projectId)
   const projectSets = selectedProject?.sets ?? []
   const defaultSet = projectSets.find(s => s.name.toLowerCase() === 'set 1' || s.name === '1') || projectSets[0]
-  const setOptions = projectSets.map(s => ({ value: s.id, label: s.name }))
+  const setOptions = projectSets.length > 0
+    ? projectSets.map(s => ({ value: s.id, label: s.name }))
+    : [{ value: '', label: 'No Sets' }]
 
   useEffect(() => {
     if (filteredProjects.length === 0) return
@@ -43,6 +45,8 @@ export default function FilterBar({ projects, filters, onChange, onWeekChange, h
   useEffect(() => {
     if (projectSets.length > 0 && !projectSets.some(s => s.id === filters.setId)) {
       onChange({ ...filters, setId: defaultSet?.id || '' })
+    } else if (projectSets.length === 0 && filters.setId !== '') {
+      onChange({ ...filters, setId: '' })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.projectId, projectSets])
@@ -117,6 +121,7 @@ export default function FilterBar({ projects, filters, onChange, onWeekChange, h
                 value={filters.setId}
                 options={setOptions}
                 onChange={setId => update({ setId })}
+                disabled={projectSets.length === 0}
               />
             )}
           </div>
