@@ -25,11 +25,13 @@ export interface KPIRecord {
   id: string
   project_id: string
   kpi_id: string
+  set_id?: string | null
   record_date: string
   period: 'DAILY' | 'WEEKLY'
   numeric_value: number | null
-  is_missing: boolean
+  is_missing?: boolean
   created_at: string
+  updated_at?: string | null
   created_by: string | null
   kpi_definition: KPIDefinition | null
 }

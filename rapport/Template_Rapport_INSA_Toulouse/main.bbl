@@ -1,0 +1,33 @@
+\begin{thebibliography}{1}
+
+\bibitem{automotive_industry40}
+M.~Hermann, T.~Pentek, and B.~Otto.
+\newblock Design principles for industrie 4.0 scenarios.
+\newblock {\em 49th Hawaii International Conference on System Sciences
+  (HICSS)}, pages 3928--3937, 2016.
+
+\bibitem{react2024}
+{Meta Open Source}.
+\newblock React: The library for web and native user interfaces.
+\newblock \url{https://react.dev/}, 2024.
+\newblock Consulté en août 2026.
+
+\bibitem{nakajima1988}
+Seiichi Nakajima.
+\newblock {\em Introduction to Total Productive Maintenance (TPM)}.
+\newblock Productivity Press, Cambridge, MA, 1988.
+
+\bibitem{fastapi2024}
+Sebastián Ramírez.
+\newblock Fastapi: High performance, easy to learn, fast to code, ready for
+  production.
+\newblock \url{https://fastapi.tiangolo.com/}, 2024.
+\newblock Consulté en août 2026.
+
+\bibitem{postgresql2024}
+{The PostgreSQL Global Development Group}.
+\newblock Postgresql 17 documentation.
+\newblock \url{https://www.postgresql.org/docs/}, 2024.
+\newblock Consulté en août 2026.
+
+\end{thebibliography}

@@ -59,6 +59,23 @@ describe('groupRecords', () => {
     expect(result[0].scrapRate).toBeNull()
     expect(result[0].oee).toBeNull()
   })
+
+  it('maps exact KPI values for a week without summing or averaging', () => {
+    const outputRec = { ...RECORD_CW02_OUTPUT, id: 'r1', numeric_value: 9500 }
+    const scrapRec = { ...RECORD_CW02_SCRAP, id: 's1', numeric_value: 2.5 }
+    const result = groupRecords([outputRec, scrapRec])
+    expect(result).toHaveLength(1)
+    expect(result[0].output).toBe(9500)
+    expect(result[0].scrapRate).toBe(2.5)
+  })
+
+  it('preserves the latest record value when multiple entries exist for a KPI in a week', () => {
+    const older = { ...RECORD_CW02_OUTPUT, id: 'r1', numeric_value: 1572, created_at: '2026-09-01T10:00:00Z' }
+    const newer = { ...RECORD_CW02_OUTPUT, id: 'r2', numeric_value: 5000, created_at: '2026-09-03T10:00:00Z' }
+    const result = groupRecords([older, newer])
+    expect(result).toHaveLength(1)
+    expect(result[0].output).toBe(5000) // latest override wins directly
+  })
 })
 
 // ─────────────────────────────────────────────────────────────────────────────

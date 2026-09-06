@@ -20,27 +20,26 @@ export interface KpiDisplay {
 }
 
 export function groupRecords(records: KPIRecord[]): WeekDataPoint[] {
-  // Store arrays of values to compute averages when 'All' sets are selected
-  const weekMap = new Map<string, Map<string, number[]>>()
-  
-  for (const rec of records) {
+  // Sort records by created_at ascending so newest record takes precedence
+  const sortedRecords = [...records].sort((a, b) => {
+    const tA = a.created_at ? new Date(a.created_at).getTime() : 0
+    const tB = b.created_at ? new Date(b.created_at).getTime() : 0
+    return tA - tB
+  })
+
+  // Map: weekLabel -> Map<kpiName, numeric_value>
+  // Exactly 1 value per KPI for the selected set per week
+  const weekMap = new Map<string, Map<string, number>>()
+
+  for (const rec of sortedRecords) {
     if (!rec.kpi_definition) continue
     if (rec.numeric_value === null || rec.numeric_value === undefined) continue
-    
+
     const weekKey = weekLabel(rec.record_date)
     if (!weekMap.has(weekKey)) weekMap.set(weekKey, new Map())
-    
-    const kpiMap = weekMap.get(weekKey)!
-    const kpiName = rec.kpi_definition.name
-    
-    if (!kpiMap.has(kpiName)) kpiMap.set(kpiName, [])
-    kpiMap.get(kpiName)!.push(rec.numeric_value)
-  }
 
-  const getAvg = (arr: number[] | undefined) => {
-    if (!arr || arr.length === 0) return null
-    const avg = arr.reduce((a, b) => a + b, 0) / arr.length
-    return Math.round(avg * 10) / 10
+    const kpiMap = weekMap.get(weekKey)!
+    kpiMap.set(rec.kpi_definition.name, rec.numeric_value)
   }
 
   return [...weekMap.entries()]
@@ -52,12 +51,12 @@ export function groupRecords(records: KPIRecord[]): WeekDataPoint[] {
     })
     .map(([label, values]) => ({
       weekLabel: label,
-      output: getAvg(values.get(KPI_LABELS[0])),
-      scrapRate: getAvg(values.get(KPI_LABELS[1])),
-      oee: getAvg(values.get(KPI_LABELS[2])),
-      insertion1: getAvg(values.get(KPI_LABELS[3])),
-      insertion2: getAvg(values.get(KPI_LABELS[4])),
-      insertion3: getAvg(values.get(KPI_LABELS[5])),
+      output: values.get(KPI_LABELS[0]) ?? null,
+      scrapRate: values.get(KPI_LABELS[1]) ?? null,
+      oee: values.get(KPI_LABELS[2]) ?? null,
+      insertion1: values.get(KPI_LABELS[3]) ?? null,
+      insertion2: values.get(KPI_LABELS[4]) ?? null,
+      insertion3: values.get(KPI_LABELS[5]) ?? null,
     }))
 }
 

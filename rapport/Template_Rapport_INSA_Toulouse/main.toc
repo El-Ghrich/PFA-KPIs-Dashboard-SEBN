@@ -1,0 +1,87 @@
+\babel@toc {french}{}\relax 
+\contentsline {chapter}{Avant-propos}{i}{chapter*.1}%
+\contentsline {chapter}{Dédicaces}{ii}{chapter*.2}%
+\contentsline {chapter}{Remerciements}{iii}{chapter*.3}%
+\contentsline {chapter}{Liste des abréviations}{iv}{chapter*.4}%
+\contentsline {chapter}{Résumé}{v}{chapter*.6}%
+\contentsline {chapter}{Abstract}{vi}{chapter*.8}%
+\contentsline {chapter}{Liste des figures}{ix}{section*.10}%
+\contentsline {chapter}{\numberline {1}Présentation de l'entreprise d'accueil - SEBN-MA}{1}{chapter.1}%
+\contentsline {section}{Introduction}{1}{section*.11}%
+\contentsline {section}{\numberline {1.1}Présentation générale de l'entreprise}{1}{section.1.1}%
+\contentsline {subsection}{\numberline {1.1.1}Nom et identité juridique}{1}{subsection.1.1.1}%
+\contentsline {subsection}{\numberline {1.1.2}Secteur d'activité}{1}{subsection.1.1.2}%
+\contentsline {subsection}{\numberline {1.1.3}Localisation}{1}{subsection.1.1.3}%
+\contentsline {subsection}{\numberline {1.1.4}Certifications et achèvements}{2}{subsection.1.1.4}%
+\contentsline {subsection}{\numberline {1.1.5}Fiche signalétique}{2}{subsection.1.1.5}%
+\contentsline {section}{\numberline {1.2}Historique et évolution du groupe}{3}{section.1.2}%
+\contentsline {subsection}{\numberline {1.2.1}Origines}{3}{subsection.1.2.1}%
+\contentsline {subsection}{\numberline {1.2.2}Le groupe Sumitomo Electric Bordnetze}{3}{subsection.1.2.2}%
+\contentsline {subsection}{\numberline {1.2.3}L'historique de SEBN-MA}{4}{subsection.1.2.3}%
+\contentsline {section}{\numberline {1.3}Activités et domaines d'intervention}{4}{section.1.3}%
+\contentsline {subsection}{\numberline {1.3.1}Les différents câbles produits par SEBN-MA}{4}{subsection.1.3.1}%
+\contentsline {subsection}{\numberline {1.3.2}Produits et Clients de SEBN-MA}{5}{subsection.1.3.2}%
+\contentsline {section}{\numberline {1.4}Organisation de l'entreprise}{5}{section.1.4}%
+\contentsline {subsection}{\numberline {1.4.1}Principaux départements et leurs rôles}{5}{subsection.1.4.1}%
+\contentsline {chapter}{\numberline {2}Contexte du Projet et Étude de l'Existant}{7}{chapter.2}%
+\contentsline {section}{Introduction}{7}{section*.12}%
+\contentsline {section}{\numberline {2.1}Cadre général du projet : Les machines HCM-S et CIM-3}{7}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Étude de l'existant}{7}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Critique de l'existant (Problématique)}{8}{section.2.3}%
+\contentsline {section}{\numberline {2.4}Objectifs du Projet et Solution proposée}{8}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Phase 1 : Moderniser et externaliser la restitution}{8}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Phase 2 : Automatiser la chaîne de valeur}{8}{subsection.2.4.2}%
+\contentsline {section}{\numberline {2.5}Indicateurs de succès du projet}{8}{section.2.5}%
+\contentsline {section}{Conclusion}{9}{section.2.5}%
+\contentsline {chapter}{\numberline {3}Analyse et Spécification des Besoins}{10}{chapter.3}%
+\contentsline {section}{Introduction}{10}{section*.13}%
+\contentsline {section}{\numberline {3.1}Acteurs et Rôles (User Roles)}{10}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Spécifications Fonctionnelles (Requirements)}{10}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Exigences Communes et Sécurité}{10}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Exigences Phase 1 : Interface de Visualisation et d'Édition}{11}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Exigences Phase 2 : Automatisation de la Génération}{11}{subsection.3.2.3}%
+\contentsline {section}{\numberline {3.3}Défis Techniques et Stratégies d'Architecture}{11}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Défi de Communication (Réseau Privé vs. Cloud)}{12}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Défi d'Ingestion des Données (Format d'Entrée)}{12}{subsection.3.3.2}%
+\contentsline {subsection}{\numberline {3.3.3}Défi de Granularité, Fidélité et Gestion du Temps}{12}{subsection.3.3.3}%
+\contentsline {subsection}{\numberline {3.3.4}Défi du "Cold Start" et des Données Manquantes}{12}{subsection.3.3.4}%
+\contentsline {section}{Conclusion}{13}{subsection.3.3.4}%
+\contentsline {chapter}{\numberline {4}Architecture et Conception du Système}{14}{chapter.4}%
+\contentsline {section}{Introduction}{14}{section*.14}%
+\contentsline {section}{\numberline {4.1}Architecture Globale et Choix Technologiques}{14}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}Pattern d'Architecture}{14}{subsection.4.1.1}%
+\contentsline {subsection}{\numberline {4.1.2}Stack Technologique}{14}{subsection.4.1.2}%
+\contentsline {subsection}{\numberline {4.1.3}Étude Comparative et Justification des Choix (Benchmark)}{15}{subsection.4.1.3}%
+\contentsline {section}{\numberline {4.2}Modélisation de la Base de Données}{16}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Entités Principales}{16}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Stratégie de "Soft Delete" et Intégrité}{17}{subsection.4.2.2}%
+\contentsline {section}{\numberline {4.3}Sécurité et Gestion des Accès}{17}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Authentification des utilisateurs (JWT)}{17}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}Sécurisation de l'Ingestion (API Keys)}{17}{subsection.4.3.2}%
+\contentsline {section}{\numberline {4.4}Conception Dynamique : Diagrammes de Séquence}{17}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}Phase 1 : Ingestion Automatisée des KPIs}{18}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Phase 2 : Restitution et Tableau de Bord}{18}{subsection.4.4.2}%
+\contentsline {section}{Conclusion}{19}{Item.18}%
+\contentsline {chapter}{\numberline {5}Réalisation et Implémentation}{20}{chapter.5}%
+\contentsline {section}{Introduction}{20}{section*.15}%
+\contentsline {section}{\numberline {5.1}Environnement de Développement et DevOps}{20}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Implémentation du Backend (FastAPI)}{20}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}Ingestion des Données et ORM Asynchrone}{20}{subsection.5.2.1}%
+\contentsline {subsection}{\numberline {5.2.2}Sécurité et Hachage Cryptographique}{21}{subsection.5.2.2}%
+\contentsline {section}{\numberline {5.3}Implémentation du Frontend (React)}{21}{section.5.3}%
+\contentsline {subsection}{\numberline {5.3.1}Gestion d'état et Cache Serveur}{21}{subsection.5.3.1}%
+\contentsline {subsection}{\numberline {5.3.2}Rafraîchissement Silencieux du Token (Intercepteur Axios)}{21}{subsection.5.3.2}%
+\contentsline {subsection}{\numberline {5.3.3}Interface Utilisateur (UI/UX)}{21}{subsection.5.3.3}%
+\contentsline {section}{\numberline {5.4}Présentation des Interfaces de l'Application}{21}{section.5.4}%
+\contentsline {subsection}{\numberline {5.4.1}Espace Public et Consultation}{22}{subsection.5.4.1}%
+\contentsline {subsection}{\numberline {5.4.2}Espaces d'Administration et Saisie}{22}{subsection.5.4.2}%
+\contentsline {subsection}{\numberline {5.4.3}Gestion du Système (Super Admin)}{23}{subsection.5.4.3}%
+\contentsline {section}{\numberline {5.5}Tests et Assurance Qualité}{24}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Déploiement, Topologie d'Hébergement et Défis Réseau}{24}{section.5.6}%
+\contentsline {subsection}{\numberline {5.6.1}Topologie de Déploiement Actuelle (Cloud Multi-Plateforme)}{24}{subsection.5.6.1}%
+\contentsline {subsection}{\numberline {5.6.2}Contraintes du Réseau Industriel SEBN-MA}{24}{subsection.5.6.2}%
+\contentsline {subsection}{\numberline {5.6.3}Solutions Stratégiques pour la Phase 2 (Mise en Production Industrielle)}{24}{subsection.5.6.3}%
+\contentsline {subsubsection}{Solution 1 : Déploiement On-Premise avec Cloudflare Tunnel (Recommandée)}{25}{subsubsection*.16}%
+\contentsline {subsubsection}{Solution 2 : Domaine Personnalisé d'Entreprise et Whitelisting Réseau}{25}{subsubsection*.17}%
+\contentsline {section}{Conclusion}{25}{subsubsection*.17}%
+\contentsline {chapter}{Conclusion générale et perspectives}{26}{chapter*.19}%

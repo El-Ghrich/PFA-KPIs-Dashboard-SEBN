@@ -115,32 +115,45 @@ class TestCreateKPIRecord:
     async def test_numeric_kpi_without_value_returns_400(
         self, client, sample_project, sample_kpi_def, auth_headers
     ):
-        """NUMERIC KPI must have numeric_value if is_missing=False."""
+        """NUMERIC KPI must have numeric_value."""
         resp = await client.post(
             "/api/v1/kpis/records",
             json=_record_payload(
                 sample_project.id, sample_kpi_def.id,
                 numeric_value=None,
-                is_missing=False,
             ),
             headers=auth_headers,
         )
         assert resp.status_code == 400
 
-    async def test_missing_record_does_not_require_value(
+    async def test_negative_numeric_value_returns_422_or_400(
         self, client, sample_project, sample_kpi_def, auth_headers
     ):
         resp = await client.post(
             "/api/v1/kpis/records",
             json=_record_payload(
                 sample_project.id, sample_kpi_def.id,
-                numeric_value=None,
-                is_missing=True,
+                numeric_value=-5.0,
             ),
             headers=auth_headers,
         )
-        assert resp.status_code == 201
-        assert resp.json()["is_missing"] is True
+        assert resp.status_code in (400, 422)
+
+    async def test_single_create_record_upserts_existing(
+        self, client, sample_project, sample_kpi_def, auth_headers
+    ):
+        payload = _record_payload(sample_project.id, sample_kpi_def.id, numeric_value=100.0)
+        resp1 = await client.post("/api/v1/kpis/records", json=payload, headers=auth_headers)
+        assert resp1.status_code == 201
+        rec1_id = resp1.json()["id"]
+
+        # Overwrite with same composite key but new numeric_value
+        payload["numeric_value"] = 250.0
+        resp2 = await client.post("/api/v1/kpis/records", json=payload, headers=auth_headers)
+        assert resp2.status_code == 201
+        body = resp2.json()
+        assert body["id"] == rec1_id
+        assert body["numeric_value"] == 250.0
 
     async def test_create_record_unauthenticated(self, client, sample_project, sample_kpi_def):
         resp = await client.post(
@@ -171,6 +184,42 @@ class TestBulkKPIRecords:
         body = resp.json()
         assert body["total"] == 2
         assert len(body["records"]) == 2
+
+    async def test_bulk_upsert_overwrites_existing_record_without_duplicates(
+        self, client, sample_project, sample_kpi_def, auth_headers
+    ):
+        today = str(date.today())
+        # First insertion
+        resp1 = await client.post(
+            "/api/v1/kpis/records/bulk",
+            json={"records": [
+                _record_payload(sample_project.id, sample_kpi_def.id, record_date=today, numeric_value=1500.0),
+            ]},
+            headers=auth_headers,
+        )
+        assert resp1.status_code == 201
+        first_id = resp1.json()["records"][0]["id"]
+
+        # Second insertion (overwrite)
+        resp2 = await client.post(
+            "/api/v1/kpis/records/bulk",
+            json={"records": [
+                _record_payload(sample_project.id, sample_kpi_def.id, record_date=today, numeric_value=5000.0),
+            ]},
+            headers=auth_headers,
+        )
+        assert resp2.status_code == 201
+        assert resp2.json()["total"] == 1
+        updated_rec = resp2.json()["records"][0]
+        assert updated_rec["id"] == first_id
+        assert updated_rec["numeric_value"] == 5000.0
+
+        # Query records and verify only ONE record exists
+        list_resp = await client.get(f"/api/v1/kpis/records?project_id={sample_project.id}")
+        assert list_resp.status_code == 200
+        records = [r for r in list_resp.json()["records"] if r["record_date"] == today and r["kpi_id"] == sample_kpi_def.id]
+        assert len(records) == 1
+        assert records[0]["numeric_value"] == 5000.0
 
     async def test_bulk_fails_if_any_kpi_invalid(self, client, sample_project, auth_headers):
         from uuid import uuid4

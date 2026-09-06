@@ -160,7 +160,7 @@ export default function BulkDataEntry() {
     [selectedProject],
   )
 
-  // Validate each row for invalid week numbers, unrecognized sets, or negative numbers
+  // Validate each row for invalid week numbers, unrecognized sets, negative numbers, or rates > 100%
   const rowValidation = useMemo(() => {
     return rows.map((r) => {
       const isWeekValid = r.weekNum !== null && Number.isInteger(r.weekNum) && r.weekNum >= 1 && r.weekNum <= 53
@@ -175,12 +175,19 @@ export default function BulkDataEntry() {
         (r.cim1 !== null && r.cim1 < 0) ||
         (r.cim2 !== null && r.cim2 < 0) ||
         (r.cim3 !== null && r.cim3 < 0)
+      const hasRateExceeding100 =
+        (r.scrap !== null && r.scrap > 100) ||
+        (r.oee !== null && r.oee > 100) ||
+        (r.cim1 !== null && r.cim1 > 100) ||
+        (r.cim2 !== null && r.cim2 > 100) ||
+        (r.cim3 !== null && r.cim3 > 100)
 
       const errors: string[] = []
       if (!isWeekValid) errors.push('Week must be an integer between 1 and 53')
       if (!isSetValid) errors.push(`Unrecognized machine set "${r.setRaw}"`)
       if (!hasAtLeastOneValue) errors.push('At least one KPI value must be provided')
       if (hasNegativeValue) errors.push('KPI values cannot be negative')
+      if (hasRateExceeding100) errors.push('Percentage KPIs (Scrap, OEE, CIM) cannot exceed 100%')
 
       return {
         id: r.id,
@@ -188,6 +195,7 @@ export default function BulkDataEntry() {
         isSetValid,
         hasAtLeastOneValue,
         hasNegativeValue,
+        hasRateExceeding100,
         isValid: errors.length === 0,
         errors,
       }
@@ -230,10 +238,10 @@ export default function BulkDataEntry() {
     const recordsToCreate: KPIRecordBulkCreateItem[] = []
 
     for (const r of rows) {
-      const week = r.weekNum || 1
+      if (!r.weekNum || r.weekNum < 1 || r.weekNum > 53) continue
       const setId = resolveSetId(r.setRaw)
       if (!setId) continue
-      const recordDateObj = mondayOfISOWeek(filters.year, week)
+      const recordDateObj = mondayOfISOWeek(filters.year, r.weekNum)
       const recordDateStr = recordDateObj.toISOString().split('T')[0]
 
       const kpiValues: { key: string; val: number | null }[] = [
@@ -247,7 +255,7 @@ export default function BulkDataEntry() {
 
       for (const item of kpiValues) {
         const kpiId = kpiMap[item.key]
-        if (kpiId) {
+        if (kpiId && item.val !== null) {
           recordsToCreate.push({
             project_id: filters.projectId,
             set_id: setId,
@@ -255,7 +263,6 @@ export default function BulkDataEntry() {
             record_date: recordDateStr,
             period: 'WEEKLY',
             numeric_value: item.val,
-            is_missing: item.val === null,
           })
         }
       }
@@ -555,7 +562,7 @@ export default function BulkDataEntry() {
                               }
                               placeholder="null"
                               className={`w-24 px-2 py-1 border rounded text-[13px] bg-surface focus:outline-none disabled:opacity-60 ${
-                                row.scrap !== null && row.scrap < 0
+                                row.scrap !== null && (row.scrap < 0 || row.scrap > 100)
                                   ? 'border-error bg-error/5 text-error'
                                   : 'border-outline-variant focus:border-primary'
                               }`}
@@ -573,7 +580,7 @@ export default function BulkDataEntry() {
                               }
                               placeholder="null"
                               className={`w-24 px-2 py-1 border rounded text-[13px] bg-surface focus:outline-none disabled:opacity-60 ${
-                                row.oee !== null && row.oee < 0
+                                row.oee !== null && (row.oee < 0 || row.oee > 100)
                                   ? 'border-error bg-error/5 text-error'
                                   : 'border-outline-variant focus:border-primary'
                               }`}
@@ -591,7 +598,7 @@ export default function BulkDataEntry() {
                               }
                               placeholder="null"
                               className={`w-24 px-2 py-1 border rounded text-[13px] bg-surface focus:outline-none disabled:opacity-60 ${
-                                row.cim1 !== null && row.cim1 < 0
+                                row.cim1 !== null && (row.cim1 < 0 || row.cim1 > 100)
                                   ? 'border-error bg-error/5 text-error'
                                   : 'border-outline-variant focus:border-primary'
                               }`}
@@ -609,7 +616,7 @@ export default function BulkDataEntry() {
                               }
                               placeholder="null"
                               className={`w-24 px-2 py-1 border rounded text-[13px] bg-surface focus:outline-none disabled:opacity-60 ${
-                                row.cim2 !== null && row.cim2 < 0
+                                row.cim2 !== null && (row.cim2 < 0 || row.cim2 > 100)
                                   ? 'border-error bg-error/5 text-error'
                                   : 'border-outline-variant focus:border-primary'
                               }`}
@@ -627,7 +634,7 @@ export default function BulkDataEntry() {
                               }
                               placeholder="null"
                               className={`w-24 px-2 py-1 border rounded text-[13px] bg-surface focus:outline-none disabled:opacity-60 ${
-                                row.cim3 !== null && row.cim3 < 0
+                                row.cim3 !== null && (row.cim3 < 0 || row.cim3 > 100)
                                   ? 'border-error bg-error/5 text-error'
                                   : 'border-outline-variant focus:border-primary'
                               }`}

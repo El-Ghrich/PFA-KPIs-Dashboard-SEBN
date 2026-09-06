@@ -55,7 +55,8 @@ export function parseWeekCell(cellStr: string | undefined): number | null {
   const digits = trimmed.replace(/\D/g, '')
   if (!digits) return null
   const parsed = parseInt(digits, 10)
-  return isNaN(parsed) ? null : parsed
+  if (isNaN(parsed) || parsed < 1 || parsed > 53) return null
+  return parsed
 }
 
 /**

@@ -1,5 +1,5 @@
 from typing import Sequence
-from datetime import date
+from datetime import date, datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, extract
 from sqlalchemy.orm import joinedload
@@ -63,23 +63,51 @@ class KPIService:
                 detail=f"KPI definition '{data.kpi_id}' not found."
             )
 
-        if not data.is_missing:
-            if kpi_def.kpi_type == KpiType.NUMERIC and data.numeric_value is None:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"KPI '{kpi_def.name}' expects a numeric value."
-                )
+        if kpi_def.kpi_type == KpiType.NUMERIC and data.numeric_value is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"KPI '{kpi_def.name}' expects a numeric value."
+            )
+
+        if data.numeric_value is not None and data.numeric_value < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="KPI values cannot be negative."
+            )
 
         return project, kpi_def
 
 
     # ==========================================
-    # SINGLE RECORD OPERATIONS
+    # SINGLE RECORD OPERATIONS (WITH UPSERT)
     # ==========================================
 
     @staticmethod
     async def create_record(session: AsyncSession, data: KPIRecordCreate, user: UserSession | None = None) -> KPIRecord:
         await KPIService._validate_record(session, data)
+
+        # Check for existing record matching composite key (Upsert)
+        query = select(KPIRecord).where(
+            KPIRecord.project_id == data.project_id,
+            KPIRecord.set_id == data.set_id,
+            KPIRecord.kpi_id == data.kpi_id,
+            KPIRecord.record_date == data.record_date,
+            KPIRecord.period == data.period,
+        )
+        existing = (await session.execute(query)).scalar_one_or_none()
+
+        if existing:
+            existing.numeric_value = data.numeric_value
+            existing.asset_url = data.asset_url
+            existing.updated_at = datetime.now(timezone.utc)
+            if user:
+                if user.source == "jwt":
+                    existing.created_by = user.user_id
+                elif user.source == "api_key":
+                    existing.api_key_id = user.api_key_id
+            await session.commit()
+            await session.refresh(existing)
+            return existing
 
         record_data = data.model_dump()
         if user:
@@ -133,6 +161,7 @@ class KPIService:
         for key, value in update_data.items():
             setattr(record, key, value)
 
+        record.updated_at = datetime.now(timezone.utc)
         await session.commit()
         await session.refresh(record)
         return record
@@ -145,7 +174,7 @@ class KPIService:
 
 
     # ==========================================
-    # BULK RECORD OPERATIONS
+    # BULK RECORD OPERATIONS (WITH UPSERT)
     # ==========================================
 
     @staticmethod
@@ -154,6 +183,9 @@ class KPIService:
         data: KPIRecordBulkCreate,
         user: UserSession | None = None
     ) -> list[KPIRecord]:
+        if not data.records:
+            return []
+
         user_field = None
         user_value = None
         if user:
@@ -163,24 +195,57 @@ class KPIService:
         for r in data.records:
             await KPIService._validate_record(session, r)
 
-        records = []
-        for r in data.records:
-            record_data = r.model_dump()
-            if user_field:
-                record_data[user_field] = user_value
-            records.append(KPIRecord(**record_data))
+        # Batch load any existing records for incoming keys
+        project_ids = {r.project_id for r in data.records}
+        dates = {r.record_date for r in data.records}
 
-        session.add_all(records)
+        existing_query = (
+            select(KPIRecord)
+            .where(
+                KPIRecord.project_id.in_(project_ids),
+                KPIRecord.record_date.in_(dates),
+            )
+        )
+        existing_records = (await session.execute(existing_query)).scalars().all()
+        lookup_map = {
+            (rec.project_id, rec.set_id, rec.kpi_id, rec.record_date, rec.period.value if hasattr(rec.period, 'value') else str(rec.period)): rec
+            for rec in existing_records
+        }
+
+        records_to_return = []
+        now_utc = datetime.now(timezone.utc)
+
+        for r in data.records:
+            period_val = r.period.value if hasattr(r.period, 'value') else str(r.period)
+            key = (r.project_id, r.set_id, r.kpi_id, r.record_date, period_val)
+
+            if key in lookup_map:
+                existing = lookup_map[key]
+                existing.numeric_value = r.numeric_value
+                existing.asset_url = r.asset_url
+                existing.updated_at = now_utc
+                if user_field:
+                    setattr(existing, user_field, user_value)
+                records_to_return.append(existing)
+            else:
+                record_data = r.model_dump()
+                if user_field:
+                    record_data[user_field] = user_value
+                new_record = KPIRecord(**record_data)
+                session.add(new_record)
+                lookup_map[key] = new_record
+                records_to_return.append(new_record)
+
         await session.commit()
 
-        for r in records:
+        for r in records_to_return:
             await session.refresh(r)
 
-        return records
+        return records_to_return
 
 
     # ==========================================
-    # QUERY OPERATIONS
+    # QUERY OPERATIONS (WITH DETERMINISTIC SORTING)
     # ==========================================
 
     @staticmethod
@@ -197,6 +262,7 @@ class KPIService:
             select(KPIRecord)
             .where(KPIRecord.project_id == project_id)
             .options(joinedload(KPIRecord.kpi_definition))
+            .order_by(KPIRecord.record_date.asc(), KPIRecord.created_at.desc())
         )
 
         if set_id:
