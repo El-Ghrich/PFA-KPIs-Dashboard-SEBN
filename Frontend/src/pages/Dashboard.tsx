@@ -45,7 +45,9 @@ export default function Dashboard() {
   useEffect(() => {
     if (filters.projectId || projects.length === 0) return
     const defaultProj = projects.find(p => p.name === settings.defaultProjectName) || projects[0]
-    setFilters(prev => (prev.projectId ? prev : { ...prev, projectId: defaultProj.id }))
+    const defaultSets = defaultProj?.sets ?? []
+    const defaultSet = defaultSets.find((s: any) => s.name.toLowerCase() === 'set 1' || s.name === '1') || defaultSets[0]
+    setFilters(prev => (prev.projectId ? prev : { ...prev, projectId: defaultProj.id, setId: defaultSet?.id || '' }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.projectId, projects, settings.defaultProjectName])
 

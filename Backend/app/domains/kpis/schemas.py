@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from datetime import date, datetime
 from typing import Optional
 from enum import Enum
@@ -47,7 +47,20 @@ class KPIRecordBase(BaseModel):
     period: RecordPeriodEnum
     numeric_value: Optional[float] = None
     asset_url: Optional[str] = None
-    is_missing: bool = False
+
+    @field_validator("record_date")
+    @classmethod
+    def validate_record_year(cls, v: date) -> date:
+        if v.year < 2020 or v.year > 2035:
+            raise ValueError(f"Record year {v.year} is outside valid range (2020-2035)")
+        return v
+
+    @field_validator("numeric_value")
+    @classmethod
+    def validate_non_negative(cls, v: Optional[float]) -> Optional[float]:
+        if v is not None and v < 0:
+            raise ValueError("Numeric value cannot be negative")
+        return v
 
 class KPIRecordCreate(KPIRecordBase):
     created_by: Optional[str] = None
@@ -57,11 +70,18 @@ class KPIRecordUpdate(BaseModel):
     period: Optional[RecordPeriodEnum] = None
     numeric_value: Optional[float] = None
     asset_url: Optional[str] = None
-    is_missing: Optional[bool] = None
+
+    @field_validator("numeric_value")
+    @classmethod
+    def validate_non_negative(cls, v: Optional[float]) -> Optional[float]:
+        if v is not None and v < 0:
+            raise ValueError("Numeric value cannot be negative")
+        return v
 
 class KPIRecordResponseBase(KPIRecordBase):
     id: str
     created_at: datetime
+    updated_at: Optional[datetime] = None
     created_by: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)

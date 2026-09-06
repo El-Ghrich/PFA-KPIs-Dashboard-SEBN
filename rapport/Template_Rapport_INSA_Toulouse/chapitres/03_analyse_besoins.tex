@@ -1,0 +1,106 @@
+\chapter{Analyse et Spécification des Besoins}
+\label{chap:analyse_besoins}
+
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+Ce chapitre a pour objectif de détailler les exigences fonctionnelles et non fonctionnelles de la solution logicielle HCM-S CIM3. Nous y définirons les acteurs du système, leurs habilitations respectives, ainsi que les spécifications de l'application divisées en deux phases distinctes : la visualisation interactive (Phase 1) et l'automatisation de l'ingestion des données (Phase 2). Enfin, nous analyserons les défis techniques liés à l'infrastructure existante et proposerons des stratégies architecturales pour y répondre.
+
+% ---------------------------------------------------------
+\section{Acteurs et Rôles (User Roles)}
+Contrairement à une application interne fermée, la solution mise en place prévoit une accessibilité publique pour la consultation, combinée à une gestion stricte des droits pour l'administration. Le système prévoit ainsi trois niveaux d'habilitation :
+
+\begin{itemize}
+    \item \textbf{Visiteur (User normal) :} Utilisateur grand public ou partie prenante n'ayant pas de compte. Il accède librement à l'application sans authentification. Ses droits sont strictement limités à la consultation (lecture seule) des tableaux de bord et des rapports. Il ne peut effectuer aucune altération de données.
+    
+    \item \textbf{Administrateur (Admin) :} Utilisateur authentifié responsable de l'alimentation quotidienne ou hebdomadaire de l'application. Ses prérogatives incluent :
+    \begin{itemize}
+        \item La création et gestion des projets HCM-S CIM3.
+        \item La mise à jour des valeurs des KPIs.
+        \item La rédaction et la publication des faits marquants (\textit{Highlights}).
+        \item La gestion des clés d'API (création), sans possibilité d'accéder aux clés supprimées (\textit{soft deleted}).
+        \item \textit{Restriction :} Il ne peut pas créer ni gérer les comptes d'autres administrateurs.
+    \end{itemize}
+
+    \item \textbf{Super Administrateur (Super Admin) :} L'acteur possédant les droits absolus sur l'application. En plus de toutes les prérogatives de l'Administrateur, il a l'autorité de créer, suspendre ou supprimer les comptes des autres Administrateurs et d'accéder aux données archivées (comme les API keys supprimées).
+\end{itemize}
+
+% ---------------------------------------------------------
+\section{Spécifications Fonctionnelles (Requirements)}
+
+\subsection{Exigences Communes et Sécurité}
+\begin{itemize}
+    \item \textbf{Authentification JWT :} L'accès aux espaces d'administration (Admin et Super Admin) sera sécurisé par une authentification par jeton (JSON Web Token).
+    \item \textbf{Responsive Design :} Les interfaces graphiques doivent s'adapter de manière fluide et ergonomique aux écrans d'ordinateurs, ainsi qu'aux terminaux mobiles (Smartphones/Tablettes).
+    \item \textbf{Disponibilité :} L'application doit être hébergée et accessible publiquement, garantissant une disponibilité continue (24h/24, 7j/7), indépendamment des pannes ou restrictions du réseau interne de l'entreprise.
+\end{itemize}
+
+\subsection{Exigences Phase 1 : Interface de Visualisation et d'Édition}
+Durant cette première phase, l'application fonctionnera de manière autonome, alimentée manuellement par les administrateurs.
+
+\begin{enumerate}
+    \item \textbf{Module de Connexion :} Interface sécurisée (Email / Mot de passe) réservée aux Administrateurs et au Super Administrateur.
+    
+    \item \textbf{Espace d'Administration :}
+    \begin{itemize}
+        \item Interface de création et modification de projets (Nom, Date, Statut, affectation des Sets machines).
+        \item Formulaire de saisie des KPIs avec possibilité d'importation en masse (\textit{Bulk Data Entry}) via un simple copier/coller depuis Excel.
+        \item Éditeur de texte pour rédiger et formater les "Highlights" de chaque projet.
+        \item Interface de gestion des accès (réservée au Super Admin).
+        \item Gestionnaire de clés d'API (en préparation pour la Phase 2).
+    \end{itemize}
+    
+    \item \textbf{Tableau de Bord interactif (Dashboard - Accès Public) :}
+    \begin{itemize}
+        \item Affichage dynamique des KPIs sous forme de graphiques interactifs.
+        \item Menus de navigation pour basculer facilement d'un projet HCM-S CIM3 à un autre.
+        \item Filtres par semaines pour la visualisation sur des périodes précises.
+        \item Module comparatif permettant d'analyser l'évolution des KPIs d'une semaine à l'autre.
+        \item Zone dédiée à la mise en évidence des "Highlights" rédigés par les administrateurs.
+        \item Zone dédiée pour les "Key Takeaways" du project.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Exigences Phase 2 : Automatisation de la Génération}
+Cette phase vise à remplacer la saisie manuelle (Bulk Entry) par un flux de données automatisé.
+\begin{itemize}
+    \item \textbf{Intégration de l'outil métier :} Implémentation d'un module (API Endpoint) capable de recevoir directement les résultats issus de la macro Excel interne.
+    \item \textbf{Extraction et parsing :} Le système devra extraire automatiquement les KPIs et les Highlights du \textit{payload} reçu et mettre à jour la base de données sans intervention humaine.
+    \item \textbf{Historisation :} Sauvegarde systématique des états pour garantir la traçabilité et permettre les comparaisons temporelles prévues sur le Dashboard.
+\end{itemize}
+
+% ---------------------------------------------------------
+\section{Défis Techniques et Stratégies d'Architecture}
+Le déploiement de cette solution soulève d'importants défis d'intégration liés aux restrictions du réseau d'entreprise et à la gestion de la consistance des données. 
+
+\subsection{Défi de Communication (Réseau Privé vs. Cloud)}
+\textbf{Problématique :} L'outil générant les données brutes (Macro Excel) réside sur le réseau restreint de l'entreprise qui bloque les requêtes entrantes. L'application Web, hébergée sur le Cloud, ne peut donc pas "interroger" le fichier local. \\
+\textbf{Stratégies à l'étude :}
+\begin{itemize}
+    \item \textit{Intégration VBA Directe (Push) :} Modification de la macro pour qu'elle exécute elle-même une requête HTTP POST sortante (sécurisée par une API Key) vers l'application Cloud après chaque mise à jour.
+    \item \textit{Agent de synchronisation local :} Déploiement d'un script Python ou PowerShell en local, chargé d'envoyer quotidiennement les données vers l'API externe.
+    \item \textit{Upload Asynchrone (Solution de repli) :} Export d'un fichier plat (JSON/Excel) par la macro, téléversé manuellement par l'administrateur via l'interface Web.
+\end{itemize}
+
+\subsection{Défi d'Ingestion des Données (Format d'Entrée)}
+\textbf{Problématique :} Assurer une transition fluide et sans régression entre la saisie manuelle (Phase 1) et l'automatisation (Phase 2). \\
+\textbf{Stratégie :} En Phase 1, l'insertion se fera via l'outil de \textit{Bulk Data Entry} ou des formulaires stricts. L'upload de documents statiques (PDF) est formellement exclu pour préserver l'interactivité. En Phase 2, l'ingestion basculera sur une API REST acceptant des \textit{payloads} JSON standardisés, avec une authentification par API Key.
+
+\subsection{Défi de Granularité, Fidélité et Gestion du Temps}
+\textbf{Problématique :} La pertinence des KPIs dépend de la finesse des données. Les périodes incomplètes (ex: milieu de semaine) risquent de fausser les moyennes. \\
+\textbf{Stratégies à l'étude :}
+\begin{itemize}
+    \item \textit{Stockage de la donnée brute journalière :} Plutôt que d'envoyer des bilans figés, la macro exportera des données désagrégées. Le calcul des KPIs sera effectué dynamiquement par le Backend.
+    \item \textit{Gestion du "Week-to-Date" :} Implémentation d'une logique Backend stricte pour différencier une "valeur nulle" (0\% de performance) d'une "absence de donnée", avec des indicateurs visuels signalant les périodes non clôturées.
+\end{itemize}
+
+\subsection{Défi du "Cold Start" et des Données Manquantes}
+\textbf{Problématique :} Puisque l'application Cloud ne peut pas interroger la base locale à la volée, comment gérer les requêtes d'utilisateurs sur des dates non encore synchronisées, et comment fournir un historique au lancement de l'application ? \\
+\textbf{Stratégie (Source de Vérité Unique) :}
+\begin{itemize}
+    \item La base de données PostgreSQL de l'application Web sera la seule source de vérité. L'interface limitera dynamiquement les sélecteurs de dates entre les valeurs \texttt{min\_date} et \texttt{max\_date} présentes en base, empêchant ainsi les requêtes dans le vide.
+    \item Pour pallier le \textit{Cold Start} (base vide au lancement), une opération de \textit{Historical Backfill} sera réalisée : un export massif de tout l'historique disponible sera généré depuis Excel et injecté dans l'application. Cette injection respectera scrupuleusement la granularité journalière pour éviter les incohérences de calcul avec les futures données automatisées.
+\end{itemize}
+
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+L'analyse des besoins a permis de cartographier précisément les rôles des utilisateurs, les fonctionnalités attendues ainsi que les obstacles techniques inhérents à l'infrastructure réseau de SEBN-MA. Ces spécifications servent de fondation solide pour la phase suivante, dédiée à la conception architecturale de la solution, où nous traduirons ces besoins en modèles techniques et en diagrammes UML.

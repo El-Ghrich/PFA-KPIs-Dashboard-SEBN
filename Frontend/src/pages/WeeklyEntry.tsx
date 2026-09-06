@@ -103,8 +103,9 @@ export default function WeeklyEntry() {
 
   useEffect(() => {
     if (!enabled || recordsQuery.isLoading) return
+    const sorted = [...records].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
     const next: Record<string, string> = {}
-    for (const rec of records) {
+    for (const rec of sorted) {
       next[rec.kpi_id] = rec.numeric_value != null ? String(rec.numeric_value) : ''
     }
     setValues(next)
@@ -126,10 +127,32 @@ export default function WeeklyEntry() {
   }, [projectId, existingHighlights, highlightsQuery.isLoading])
 
   const recordsByKpi = useMemo(() => {
+    const sorted = [...records].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
     const map: Record<string, KPIRecord> = {}
-    for (const rec of records) map[rec.kpi_id] = rec
+    for (const rec of sorted) map[rec.kpi_id] = rec
     return map
   }, [records])
+
+  const validationErrors = useMemo(() => {
+    const errs: Record<string, string> = {}
+    for (const def of definitions) {
+      const raw = values[def.id]
+      if (!raw || raw.trim() === '') continue
+      const num = Number(raw)
+      if (isNaN(num)) {
+        errs[def.id] = 'Must be a valid number'
+      } else if (num < 0) {
+        errs[def.id] = 'Value cannot be negative'
+      } else if (def.unit === '%' || def.name.toLowerCase().includes('rate') || def.name.toLowerCase().includes('oee') || def.name.toLowerCase().includes('scrap')) {
+        if (num > 100) {
+          errs[def.id] = 'Percentage cannot exceed 100%'
+        }
+      }
+    }
+    return errs
+  }, [definitions, values])
+
+  const hasValidationErrors = Object.keys(validationErrors).length > 0
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -340,20 +363,26 @@ export default function WeeklyEntry() {
                 <EmptyState className="h-40" message="No KPI definitions found" />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                  {definitions.map(def => (
-                    <Input
-                      key={def.id}
-                      id={`kpi-${def.id}`}
-                      label={def.name}
-                      type="number"
-                      inputMode="decimal"
-                      step="any"
-                      disabled={saveMutation.isPending}
-                      value={values[def.id] ?? ''}
-                      suffix={<span className="text-[12px] font-semibold text-on-surface-variant/60">{def.unit}</span>}
-                      onChange={e => setValues(prev => ({ ...prev, [def.id]: e.target.value }))}
-                    />
-                  ))}
+                  {definitions.map(def => {
+                    const isPercentage = def.unit === '%' || def.name.toLowerCase().includes('rate') || def.name.toLowerCase().includes('oee') || def.name.toLowerCase().includes('scrap')
+                    return (
+                      <Input
+                        key={def.id}
+                        id={`kpi-${def.id}`}
+                        label={def.name}
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        max={isPercentage ? "100" : undefined}
+                        step={isPercentage ? "0.1" : "1"}
+                        disabled={saveMutation.isPending}
+                        value={values[def.id] ?? ''}
+                        error={validationErrors[def.id]}
+                        suffix={<span className="text-[12px] font-semibold text-on-surface-variant/60">{def.unit}</span>}
+                        onChange={e => setValues(prev => ({ ...prev, [def.id]: e.target.value }))}
+                      />
+                    )
+                  })}
                 </div>
               )}
 
@@ -385,7 +414,7 @@ export default function WeeklyEntry() {
                 <Button
                   onClick={() => saveMutation.mutate()}
                   loading={saveMutation.isPending}
-                  disabled={saveMutation.isPending}
+                  disabled={saveMutation.isPending || hasValidationErrors}
                   className="flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />

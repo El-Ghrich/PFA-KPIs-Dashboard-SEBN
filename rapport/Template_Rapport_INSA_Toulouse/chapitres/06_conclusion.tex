@@ -1,0 +1,40 @@
+\cleardoublepage
+\phantomsection
+\chapter*{Conclusion générale et perspectives}
+\addcontentsline{toc}{chapter}{Conclusion générale et perspectives}
+
+\section*{Bilan du Projet}
+Le stage de Projet de Fin d'Année effectué au sein de l'entreprise \textbf{SEBN-MA} (site de Tanger Free Zone) avait pour mission principale la modernisation, la fiabilisation et l'automatisation du suivi des indicateurs clés de performance (KPIs) pour les ensembles de production critiques \textbf{HCM-S CIM-3}.
+
+Face aux limites d'un processus historique reposant sur des fichiers Excel isolés, des macros complexes et des manipulations manuelles chronophages, nous avons conçu, développé et déployé une solution logicielle complète, découplée et sécurisée. 
+
+L'ensemble des objectifs fixés pour la \textbf{Phase 1} a été atteint avec succès :
+\begin{itemize}
+    \item \textbf{Une interface web réactive et interactive :} Développée avec React~19, TypeScript et Tailwind CSS~v4, la plateforme offre aux managers une visualisation dynamique et en temps réel de l'OEE, du Scrap Rate et des performances CIM, enrichie de graphiques chronologiques (Chart.js) et du calcul automatique des écarts statistiques (deltas).
+    \item \textbf{Un module de transition fluide (Bulk Data Entry) :} L'outil d'ingestion par copier-coller direct depuis le presse-papiers Excel, doté d'une validation client rigoureuse (détection des anomalies de semaines, sets et valeurs négatives), simplifie drastiquement le quotidien des opérateurs.
+    \item \textbf{Un backend asynchrone hautement performant :} Propulsé par FastAPI, SQLAlchemy~2.0 et PostgreSQL (\texttt{asyncpg}), il garantit une ingestion en masse atomique et non-bloquante avec documentation automatique OpenAPI.
+    \item \textbf{Une sécurité conforme aux standards de l'industrie :} Mise en place d'une gestion des identités par rôles (Visiteur, Admin, Super Admin), d'un rafraîchissement transparent des jetons JWT (Access/Refresh) via un intercepteur Axios avec file d'attente, et d'un stockage \textit{Zero-Knowledge} (SHA-256) des clés d'API.
+    \item \textbf{Une démarche d'assurance qualité industrielle :} Mise en œuvre d'une suite de tests automatisés (151 tests unitaires et d'intégration couvrant le Frontend avec Vitest et le Backend avec Pytest), orchestrée par un pipeline d'intégration continue (CI/CD) sur GitHub Actions avec conteneurisation Docker multi-stage.
+\end{itemize}
+
+% ---------------------------------------------------------
+\section*{Apports et Valeur Ajoutée pour SEBN-MA}
+L'implémentation de cette solution apporte des bénéfices opérationnels concrets pour l'usine :
+\begin{enumerate}
+    \item \textbf{Gain de temps significatif :} Suppression des tâches manuelles de consolidation et de mise en forme des graphiques, libérant un temps précieux pour l'analyse et la prise de décision.
+    \item \textbf{Fiabilité et intégrité de la donnée :} Centralisation dans une base relationnelle persistante avec politique de suppression douce (\textit{Soft Delete}), éliminant les risques de corruption de fichiers ou de pertes d'historique.
+    \item \textbf{Réactivité décisionnelle :} Identification instantanée des écarts de cadence et des dérives de rebut sur chaque Set machine grâce aux alertes et aux faits marquants (\textit{Highlights}).
+\end{enumerate}
+
+% ---------------------------------------------------------
+\section*{Perspectives et Évolutions Futures (Phase 2)}
+Bien que le système actuel soit pleinement opérationnel, ce projet pose les fondations de plusieurs perspectives d'évolution majeures :
+\begin{itemize}
+    \item \textbf{Déploiement On-Premise avec Cloudflare Tunnel :} Afin de s'affranchir des restrictions du pare-feu d'entreprise sans compromettre la sécurité périmétrique, le déploiement local de la stack via \texttt{docker-compose} combiné à un tunnel chiffré unidirectionnel constitue l'étape immédiate pour rendre l'outil accessible sur tout le réseau de l'usine.
+    \item \textbf{Automatisation totale du flux d'ingestion (Phase 2) :} Connexion directe des scripts locaux et macros VBA aux endpoints d'ingestion sécurisés via clés d'API, atteignant ainsi une automatisation intégrale « zéro saisie ».
+    \item \textbf{Maintenance prédictive et Machine Learning :} Grâce au choix stratégique de l'écosystème Python côté backend, la solution pourra intégrer des modèles d'apprentissage automatique pour anticiper les pannes d'outillage sur les machines HCM-S et prédire l'apparition de micro-arrêts sur les lignes CIM-3.
+\end{itemize}
+
+% ---------------------------------------------------------
+\section*{Bilan Personnel et Professionnel}
+Ce stage au sein de SEBN-MA a constitué une opportunité majeure sur le plan technique et humain. Il m'a permis d'appréhender les réalités et contraintes du secteur automobile (industrie de Rang 1), de maîtriser des technologies modernes de pointe (React~19, FastAPI, Docker, CI/CD), et de piloter un projet de bout en bout, de l'expression des besoins industriels jusqu'au déploiement et à l'assurance qualité.

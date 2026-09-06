@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 from typing import Optional, TYPE_CHECKING
-from sqlalchemy import String, Float, Boolean, Enum, ForeignKey, Date, DateTime
+from sqlalchemy import String, Float, Boolean, Enum, ForeignKey, Date, DateTime, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.base import Base
 import enum
@@ -35,6 +35,9 @@ class KPIDefinition(Base):
 
 class KPIRecord(Base):
     __tablename__ = "kpi_records"
+    __table_args__ = (
+        UniqueConstraint("project_id", "set_id", "kpi_id", "record_date", "period", name="uq_kpi_record_entry"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.id"), nullable=False)
@@ -47,10 +50,10 @@ class KPIRecord(Base):
     numeric_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     asset_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    is_missing: Mapped[bool] = mapped_column(Boolean, default=False)
     created_by: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
     api_key_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("api_keys.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, onupdate=lambda: datetime.now(timezone.utc))
 
     kpi_definition: Mapped["KPIDefinition"] = relationship(back_populates="records")
     project: Mapped["Project"] = relationship(back_populates="kpi_records")

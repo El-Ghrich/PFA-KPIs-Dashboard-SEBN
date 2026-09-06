@@ -61,8 +61,13 @@ describe('buildDefaultFilters', () => {
     expect(filters.compareWeek).toBe(14)
   })
 
-  it('sets setId to "All"', () => {
+  it('sets setId to default project first set (set-1)', () => {
     const filters = buildDefaultFilters(MOCK_PROJECTS, mockSettings)
-    expect(filters.setId).toBe('All')
+    expect(filters.setId).toBe('set-1')
+  })
+
+  it('sets setId to empty string when projects array is empty', () => {
+    const filters = buildDefaultFilters([], mockSettings)
+    expect(filters.setId).toBe('')
   })
 })

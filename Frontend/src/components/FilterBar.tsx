@@ -27,24 +27,29 @@ export default function FilterBar({ projects, filters, onChange, onWeekChange, h
 
   const selectedProject = projects.find(p => p.id === filters.projectId)
   const projectSets = selectedProject?.sets ?? []
-  const setOptions = [
-    { value: 'All', label: 'All Sets' },
-    ...projectSets.map(s => ({ value: s.id, label: s.name }))
-  ]
+  const defaultSet = projectSets.find(s => s.name.toLowerCase() === 'set 1' || s.name === '1') || projectSets[0]
+  const setOptions = projectSets.length > 0
+    ? projectSets.map(s => ({ value: s.id, label: s.name }))
+    : [{ value: '', label: 'No Sets' }]
 
   useEffect(() => {
     if (filteredProjects.length === 0) return
     if (filteredProjects.some(p => p.id === filters.projectId)) return
-    onChange({ ...filters, projectId: filteredProjects[0].id, setId: 'All' })
+    const newProj = filteredProjects[0]
+    const sets = newProj?.sets ?? []
+    const defSet = sets.find(s => s.name.toLowerCase() === 'set 1' || s.name === '1') || sets[0]
+    onChange({ ...filters, projectId: newProj.id, setId: defSet?.id || '' })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.location, filters.projectId])
 
   useEffect(() => {
-    if (filters.setId !== 'All' && !projectSets.some(s => s.id === filters.setId)) {
-      onChange({ ...filters, setId: 'All' })
+    if (projectSets.length > 0 && !projectSets.some(s => s.id === filters.setId)) {
+      onChange({ ...filters, setId: defaultSet?.id || '' })
+    } else if (projectSets.length === 0 && filters.setId !== '') {
+      onChange({ ...filters, setId: '' })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.projectId])
+  }, [filters.projectId, projectSets])
 
   function update(partial: Partial<FilterState>) {
     onChange({ ...filters, ...partial })
@@ -116,6 +121,7 @@ export default function FilterBar({ projects, filters, onChange, onWeekChange, h
                 value={filters.setId}
                 options={setOptions}
                 onChange={setId => update({ setId })}
+                disabled={projectSets.length === 0}
               />
             )}
           </div>

@@ -32,7 +32,7 @@ const BASE_FILTERS: FilterState = {
   year: 2026,
   week: 15,
   compareWeek: 14,
-  setId: 'All',
+  setId: MOCK_SET_1.id,
 }
 
 function renderFilterBar(
@@ -178,32 +178,31 @@ describe('FilterBar — set filter', () => {
     const user = userEvent.setup()
     renderFilterBar({ ...BASE_FILTERS, projectId: MOCK_PROJECT_MOROCCO.id })
 
-    // Open the Set dropdown (currently "All Sets")
-    const setTrigger = screen.getByRole('button', { name: /all sets/i })
+    // Open the Set dropdown (currently Set 1)
+    const setTrigger = screen.getByRole('button', { name: new RegExp(MOCK_SET_1.name, 'i') })
     await user.click(setTrigger)
 
-    expect(await screen.findByRole('button', { name: MOCK_SET_1.name })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: MOCK_SET_2.name })).toBeInTheDocument()
+    // Option Set 2 appears in the dropdown list
+    expect(await screen.findByRole('button', { name: MOCK_SET_2.name })).toBeInTheDocument()
+    // Option Set 1 is also present in addition to the trigger button
+    expect(screen.getAllByRole('button', { name: MOCK_SET_1.name })).toHaveLength(2)
   })
 
-  it('shows only "All Sets" for a project with no sets', async () => {
-    const user = userEvent.setup()
-    renderFilterBar({ ...BASE_FILTERS, projectId: MOCK_PROJECT_MEXICO.id })
+  it('shows "No Sets" for a project with no sets', async () => {
+    renderFilterBar({ ...BASE_FILTERS, projectId: MOCK_PROJECT_MEXICO.id, setId: '' })
 
-    const setTrigger = screen.getByRole('button', { name: /all sets/i })
-    await user.click(setTrigger)
-
+    expect(screen.getByRole('button', { name: /no sets/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: MOCK_SET_1.name })).not.toBeInTheDocument()
   })
 
   it('calls onChange with the selected setId when a set is chosen', async () => {
     const user = userEvent.setup()
-    const { onChange } = renderFilterBar({ ...BASE_FILTERS, projectId: MOCK_PROJECT_MOROCCO.id })
+    const { onChange } = renderFilterBar({ ...BASE_FILTERS, projectId: MOCK_PROJECT_MOROCCO.id, setId: MOCK_SET_1.id })
 
-    await selectDropdownOption(user, 'All Sets', MOCK_SET_1.name)
+    await selectDropdownOption(user, MOCK_SET_1.name, MOCK_SET_2.name)
 
     expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ setId: MOCK_SET_1.id }),
+      expect.objectContaining({ setId: MOCK_SET_2.id }),
     )
   })
 })
@@ -239,7 +238,7 @@ describe('FilterBar — reset', () => {
     expect(onChange).toHaveBeenCalledOnce()
     const call = onChange.mock.calls[0][0] as FilterState
     expect(call.location).toBe('All')
-    expect(call.setId).toBe('All')
+    expect(call.setId).toBe('set-1')
   })
 
   it('passes the full projects list to buildDefaultFilters on reset', async () => {

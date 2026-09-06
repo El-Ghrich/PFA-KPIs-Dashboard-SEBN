@@ -1,0 +1,173 @@
+\documentclass{report}
+\input{packages.tex}
+
+
+
+% Environnements pour les théorèmes, définitions et preuves
+\newtheorem{theorem}{Théorème}
+\newtheorem{definition}{Définition}
+\newtheorem{example}{Exemple}
+\newtheorem{property}{Propriété}
+
+\renewcommand{\contentsname}{Table des matières}
+\newmdtheoremenv{boxedproperty}{Propriété}[section]  % Crée un environnement encadré pour les propriétés
+
+
+
+% Pour avoir le petit dessin de l'INSA en bas à droite de chaque page
+% \usepackage{background}
+% \backgroundsetup{
+% scale=1,
+% angle=0,
+% opacity=1,
+% color=black,
+% contents={\begin{tikzpicture}[remember picture,overlay]
+% \node at ([xshift=-0.8in,yshift=0.8in] current page.south east) % Adjust the position of the logo.
+% {\includegraphics[scale=0.8]{images/pattern.png}}; % logo goes here
+% \end{tikzpicture}}
+% }
+
+
+% Configuration des titres des sections et sous-sections
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{18pt}{\Huge}
+\titleformat{\section}
+  {\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries}{\thesubsection}{1em}{}
+
+% Configuration de la table des matières
+\renewcommand{\cftchapfont}{\bfseries}
+\renewcommand{\cftsecfont}{\normalfont}
+\renewcommand{\cftsubsecfont}{\normalfont}
+\renewcommand{\cftchappagefont}{\bfseries}
+\renewcommand{\cftsecpagefont}{\normalfont}
+\renewcommand{\cftsubsecpagefont}{\normalfont}
+\setlength{\cftbeforetoctitleskip}{0pt}
+\setlength{\cftaftertoctitleskip}{10pt}
+\renewcommand{\contentsname}{Table des matières}
+
+
+\begin{document}
+
+% --- Page de titre ---
+\begin{titlepage}
+    \centering
+    
+    \noindent
+    \begin{minipage}{0.3\textwidth}
+        \includegraphics[width=0.6\linewidth]{images/logo_ensa.jpg} % Logo ENSA Tanger
+    \end{minipage}%
+    \hfill
+    \begin{minipage}{0.5\textwidth}
+        \flushright
+        \includegraphics[width=0.6\linewidth]{images/logo_sebn.jpg} % Logo SEBN-MA
+    \end{minipage}
+
+    \vspace*{3cm}
+    {\Large \textbf{Rapport de Projet de Fin d'Année (PFA)} \par}
+    \vspace{1cm}
+    {\Huge\bfseries Application de suivi et de génération des KPIs \par}
+    \vspace{0.5cm}
+    {\huge (HCM-S CIM3) \par}
+    
+    \vspace{2.5cm}
+    % --- Section "Réalisé par" et "Encadré par" côte à côte ---
+    \noindent
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering \Large
+        \textbf{Réalisé par :}\\ 
+        Salman EL-GHRICH
+    \end{minipage}%
+    \hspace{1.4cm} % <-- Tu peux modifier cette valeur pour écarter ou rapprocher les noms
+    \begin{minipage}[t]{0.45\textwidth}
+        \centering \Large
+        \textbf{Encadré par :}\\ 
+        Mr. Mouhssine Aouam
+    \end{minipage}
+    \par
+    \vspace{2cm}
+
+    {\large \textbf{Filière :}\\ 2ème année Cycle Ingénieur – Génie Informatique \par}
+    \vspace{1.5cm}
+    {\large Du 03/07/2026 au 03/09/2026 \par} % Ajout des dates ici
+    \vspace{1cm}
+    
+    \vfill
+    {\Large \textbf{Entreprise d'accueil : SEBN-MA} \par}
+    \vspace{1cm}
+    {\large Année Universitaire : 2025-2026 \par}
+\end{titlepage}
+
+% --- Numérotation des pages préliminaires (chiffres romains : i, ii, iii...) ---
+\cleardoublepage
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+\include{chapitres/00_avant_propos}
+\include{chapitres/001_dedicace}
+\include{chapitres/002_remerciements}
+\include{chapitres/003_abrv}
+
+% --- Résumé (Français) ---
+\cleardoublepage
+\phantomsection
+\chapter*{Résumé}
+\addcontentsline{toc}{chapter}{Résumé}
+\markboth{Résumé}{Résumé}
+
+Dans le cadre de l'industrie automobile de Rang~1, l'efficacité des lignes d'assemblage repose sur un suivi rigoureux des indicateurs clés de performance (\textit{KPIs}). Ce Projet de Fin d'Année, mené au sein de l'entreprise \textbf{SEBN-MA} (site de Tanger Free Zone), porte sur la conception, le développement et le déploiement d'une plateforme logicielle moderne dédiée au pilotage des ensembles de machines synchronisées \textbf{HCM-S CIM-3}.
+
+Historiquement, la collecte et la mise en forme de ces indicateurs reposaient sur des classeurs Excel isolés et des manipulations manuelles chronophages, limitant la visibilité en temps réel et exposant les données à des risques d'erreurs humaines. Pour répondre à ces défis, nous avons développé une application web découplée articulée autour d'un client réactif en \textbf{React~19} (TypeScript, Tailwind CSS~v4, TanStack Query, Chart.js) et d'un serveur d'API REST asynchrone haute performance propulsé par \textbf{FastAPI}, \textbf{SQLAlchemy~2.0} et une base de données relationnelle \textbf{PostgreSQL} (\texttt{asyncpg}).
+
+L'application intègre notamment un module novateur d'importation en masse (\textit{Bulk Data Entry}) capable de parser instantanément les données copiées depuis le presse-papiers Excel, avec validation dynamique des plages de semaines et des équipements. La sécurité repose sur une authentification JWT à double jeton (avec rafraîchissement transparent sous Axios) et un stockage \textit{Zero-Knowledge} (SHA-256) des clés d'API destinées à l'automatisation de l'ingestion (Phase~2). 
+
+La fiabilité du système est attestée par une suite de \textbf{151 tests automatisés} exécutés avec un taux de réussite de 100\,\% sous Vitest et Pytest. L'infrastructure est conteneurisée via un \textit{Multi-stage Dockerfile} (réduisant le poids de l'image de production à environ 180~Mo) et validée par un pipeline d'intégration continue (\textit{CI/CD}) sous GitHub Actions avec un temps de compilation de 9,3~secondes. La solution garantit ainsi à SEBN-MA un gain de temps opérationnel substantiel, une intégrité totale des données industrielles et une transition fluide vers l'Usine du Futur (Industrie~4.0).
+
+\vspace{0.6cm}
+\noindent \textbf{Mots-clés :} Indicateurs de Performance (KPIs), OEE / TRS, HCM-S CIM-3, Industrie 4.0, FastAPI, React 19, PostgreSQL, Docker, Intégration Continue (CI/CD), SEBN-MA.
+
+% --- Abstract (English) ---
+\cleardoublepage
+\phantomsection
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\markboth{Abstract}{Abstract}
+
+In Tier-1 automotive manufacturing, production line efficiency heavily relies on the rigorous monitoring of Key Performance Indicators (\textit{KPIs}). This engineering project, conducted at \textbf{SEBN-MA} (Tangier Free Zone plant), focuses on designing, developing, and deploying a modern web application dedicated to supervising \textbf{HCM-S CIM-3} synchronized machine sets.
+
+Historically, KPI aggregation relied on isolated Excel workbooks and time-consuming manual workflows, hindering real-time visibility and risking data inconsistency. To overcome these limitations, we engineered a decoupled web platform featuring a reactive \textbf{React~19} frontend (TypeScript, Tailwind CSS~v4, TanStack Query, Chart.js) and a high-performance asynchronous REST API powered by \textbf{FastAPI}, \textbf{SQLAlchemy~2.0}, and \textbf{PostgreSQL} (\texttt{asyncpg}).
+
+Key achievements include a \textit{Bulk Data Entry} feature that parses raw Excel clipboard data with real-time validation, dual-token JWT authentication with silent refresh, and \textit{Zero-Knowledge} SHA-256 API key hashing for automated ingestion. Quality assurance is backed by \textbf{151 automated tests} (100\% pass rate on Vitest and Pytest), multi-stage Docker packaging ($\approx$180~MB image size), and a GitHub Actions CI/CD pipeline achieving a 9.3-second build time. This solution delivers significant time savings, rock-solid data integrity, and a concrete step toward Industry 4.0 for SEBN-MA.
+
+\vspace{0.6cm}
+\noindent \textbf{Keywords :} KPIs, OEE, HCM-S CIM-3, Industry 4.0, Automotive Wiring Harness, FastAPI, React 19, PostgreSQL, Docker, CI/CD, SEBN-MA.
+
+% --- Table des matières ---
+\cleardoublepage
+\phantomsection
+\tableofcontents
+
+% --- Personnalisation du titre (si non géré par babel) ---
+\renewcommand{\listfigurename}{Liste des figures}
+
+% --- Génération automatique de la liste des figures ---
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{\listfigurename}
+\listoffigures
+
+% --- Numérotation du corps du rapport (chiffres arabes : 1, 2, 3...) ---
+\cleardoublepage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+% --- Inclusion des chapitres ---
+\include{chapitres/01_introduction}
+\include{chapitres/02_contexte_entreprise}
+\include{chapitres/03_analyse_besoins}
+\include{chapitres/04_architecture_conception}
+\include{chapitres/05_realisation}
+\include{chapitres/06_conclusion}
+
+\end{document}

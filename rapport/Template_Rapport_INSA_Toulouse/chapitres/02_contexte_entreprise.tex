@@ -1,0 +1,61 @@
+\chapter{Contexte du Projet et Étude de l'Existant}
+\label{chap:contexte_projet}
+
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+Après avoir présenté l'entreprise SEBN-MA et son environnement industriel, ce chapitre est consacré au cadre spécifique de notre projet. Nous y détaillerons le fonctionnement des machines concernées, avant de présenter l'étude de l'existant concernant la gestion actuelle des indicateurs clés de performance (KPIs). Enfin, nous définirons la problématique soulevée, la solution web proposée et les indicateurs de succès du projet.
+
+% ---------------------------------------------------------
+\section{Cadre général du projet : Les machines HCM-S et CIM-3}
+Ce projet cible particulièrement le suivi de production et l'analyse de performance d'un ensemble de machines spécifiques au sein de l'usine, désigné sous le terme de \textbf{« Set HCM-S / CIM-3 »}.
+
+Pour comprendre l'enjeu du projet, il est essentiel de distinguer le rôle de ces deux types d'équipements :
+\begin{itemize}
+    \item \textbf{La machine HCM-S (Hyper Compact Machine - Set bar) :} C'est une machine de préparation qui se charge des opérations de coupe des câbles, de dénudage, de sertissage (\textit{crimping}) et de l'ajout des terminaux.
+    \item \textbf{La machine CIM-3 (Computer Integrated Manufacturing) :} C'est la machine d'assemblage qui prend le relais pour effectuer l'insertion automatique des câbles préparés dans les connecteurs finaux.
+\end{itemize}
+
+\textbf{Le concept du « Set » :} La machine HCM-S possède une cadence de production environ trois fois plus rapide qu'une machine CIM-3. Ainsi, pour équilibrer la ligne de production et éviter les goulots d'étranglement, l'usine regroupe ces équipements sous forme de « Set » composé d'\textbf{une (1) machine HCM-S couplée à trois (3) machines CIM-3}. Le pilotage de la solution logicielle repose sur l'analyse des KPIs de ces ensembles synchronisés.
+
+% ---------------------------------------------------------
+\section{Étude de l'existant}
+Dans le cadre de la gestion et du suivi des projets au sein de SEBN-MA, le pilotage de l'activité des Sets HCM-S / CIM-3 repose sur l'analyse rigoureuse d'indicateurs clés de performance. 
+
+Actuellement, le processus de centralisation, de calcul et de mise en forme de ces données se déroule de la manière suivante :
+\begin{enumerate}
+    \item \textbf{Extraction des données brutes (\textit{Raw Data}) :} Les données de production sont extraites à l'aide d'un outil interne basé sur des macros Excel.
+    \item \textbf{Génération manuelle des tableaux de bord :} À partir de ces données brutes, les superviseurs et responsables doivent construire manuellement les différents graphiques et tableaux de bord dans Excel.
+    % \item \textbf{Restitution statique :} Une fois rédigés et mis en forme, les rapports générés sont statiques et figés.
+\end{enumerate}
+
+% ---------------------------------------------------------
+\section{Critique de l'existant (Problématique)}
+Bien que cet outil basé sur des macros Excel soit fonctionnel d'un point de vue calculatoire, il présente d'importantes limites opérationnelles :
+\begin{itemize}
+    \item \textbf{Tâches chronophages :} La création manuelle des tableaux de bord après l'extraction des données brutes constitue une perte de temps considérable sans valeur ajoutée directe.
+    \item \textbf{Rapports statiques :} L'absence d'interactivité empêche une analyse dynamique et en profondeur (\textit{drill-down}) des baisses de performance.
+    \item \textbf{Problèmes d'accessibilité et de collaboration :} Le fichier Excel limite la collaboration en temps réel et rend le partage des informations difficile entre les différentes parties prenantes, d'autant plus que l'outil est restreint au réseau interne de l'entreprise.
+\end{itemize}
+
+% ---------------------------------------------------------
+\section{Objectifs du Projet et Solution proposée}
+Face à ces limites, l'objectif principal de ce projet est de concevoir, développer et déployer une \textbf{application Web intuitive et sécurisée} permettant de piloter l'activité des projets HCM-S CIM3. La réalisation de cette solution s'articule autour de deux grandes finalités :
+
+\subsection{Phase 1 : Moderniser et externaliser la restitution}
+Il s'agit d'offrir une interface moderne, accessible à tout moment et depuis n'importe quel emplacement géographique. L'application permettra d'éditer, de visualiser de manière interactive les tableaux de bord KPI et de mettre en évidence les points marquants (\textit{highlights}) préalablement préparés.
+
+\subsection{Phase 2 : Automatiser la chaîne de valeur}
+L'objectif est d'éliminer définitivement les tâches chronophages en intégrant un moteur logiciel capable de lire et d'interpréter automatiquement les données issues de l'outil macro Excel, ou bien directement de la base de données centrale (et ce, malgré les restrictions du réseau interne). Ce moteur agira comme un ETL et générera de façon totalement automatisée les tableaux de bord directement sur l'application Web.
+
+% ---------------------------------------------------------
+\section{Indicateurs de succès du projet}
+Pour valider l'aboutissement de notre application, plusieurs critères de succès stricts ont été définis avec l'entreprise d'accueil :
+\begin{itemize}
+    \item \textbf{Accessibilité continue :} Disponibilité 24h/24 et 7j/7 de l'application hors du réseau restreint de l'entreprise.
+    \item \textbf{Confidentialité et sécurité :} Sécurisation stricte des accès pour les administrateurs via une authentification obligatoire et gestion rigoureuse des rôles utilisateurs.
+    \item \textbf{Fiabilité des données :} Fidélité absolue des KPIs affichés sur l'application Web par rapport aux calculs initiaux.
+\end{itemize}
+
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+L'analyse de l'existant a mis en évidence le besoin crucial de moderniser le suivi des performances des équipements HCM-S et CIM-3. En passant d'un processus manuel sur Excel à une plateforme Web automatisée, SEBN-MA gagnera en réactivité et en fiabilité. Le chapitre suivant sera consacré à l'analyse détaillée des besoins de cette nouvelle application et à la conception de son architecture logicielle.
