@@ -1,8 +1,9 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import projects, kpis, auth, api_keys, highlights, users, takeaways
+from app.api.v1.endpoints import projects, kpis, auth, api_keys, highlights, users, takeaways, overview
 
 api_router = APIRouter()
 
+api_router.include_router(overview.router, prefix="/overview", tags=["Overview"])
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(users.router, prefix="/users", tags=["Users"])
 api_router.include_router(projects.router, prefix="/projects", tags=["Projects"])
