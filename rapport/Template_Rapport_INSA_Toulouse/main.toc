@@ -5,7 +5,7 @@
 \contentsline {chapter}{Liste des abréviations}{iv}{chapter*.4}%
 \contentsline {chapter}{Résumé}{v}{chapter*.6}%
 \contentsline {chapter}{Abstract}{vi}{chapter*.8}%
-\contentsline {chapter}{Liste des figures}{ix}{section*.10}%
+\contentsline {chapter}{Liste des figures}{viii}{section*.10}%
 \contentsline {chapter}{\numberline {1}Présentation de l'entreprise d'accueil - SEBN-MA}{1}{chapter.1}%
 \contentsline {section}{Introduction}{1}{section*.11}%
 \contentsline {section}{\numberline {1.1}Présentation générale de l'entreprise}{1}{section.1.1}%

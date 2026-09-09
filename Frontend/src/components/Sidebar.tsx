@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useSidebar } from '../contexts/SidebarContext'
 import { Link, useLocation } from 'react-router-dom'
-import { X, PanelLeftClose, PanelLeftOpen, Settings as SettingsIcon } from 'lucide-react'
+import { X, PanelLeftClose, PanelLeftOpen, Settings as SettingsIcon, LayoutDashboard, BarChart3 } from 'lucide-react'
 
 export default function Sidebar() {
   const { user, logout } = useAuth()
@@ -13,7 +13,18 @@ export default function Sidebar() {
   const isSuperAdmin = user?.role === 'SUPER_ADMIN'
 
   const navItems = [
-    { href: '/', label: 'Overview', icon: <GridIcon />, active: location.pathname === '/' },
+    {
+      href: '/',
+      label: 'Overview',
+      icon: <LayoutDashboard className="w-4 h-4" />,
+      active: location.pathname === '/' || location.pathname === '/overview',
+    },
+    {
+      href: '/dashboard',
+      label: 'Plant Dashboard',
+      icon: <BarChart3 className="w-4 h-4" />,
+      active: location.pathname === '/dashboard' || location.pathname === '/plant-dashboard',
+    },
   ]
 
   const reportItems: { href: string; label: string; icon: React.ReactNode; active: boolean }[] = isAdmin ? [
@@ -173,7 +184,6 @@ function NavItem({ href, children, active, badge, icon }: { href: string; childr
   )
 }
 
-function GridIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg> }
 function FileInputIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="13" y1="17" x2="16" y2="17" /><line x1="8" y1="17" x2="9" y2="17" /></svg> }
 function UsersIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" /></svg> }
 function FolderKanbanIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 8.07 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" /><path d="M8 10v4" /><path d="M12 10v2" /><path d="M16 10v6" /></svg> }

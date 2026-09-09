@@ -115,3 +115,46 @@ export interface KeyTakeawayListResponse {
   total: number
 }
 
+export interface ProjectOverviewCard {
+  id: string
+  name: string
+  location: string
+  status: string
+  sets_count: number
+  sets: string[]
+  oee: number | null
+  oee_diff: number | null
+  output: number | null
+  scrap_rate: number | null
+  downtime: number | null
+  latest_highlight: string | null
+  highlight_status: 'GOOD' | 'BAD' | null
+}
+
+export interface LocationOverview {
+  location: string
+  average_oee: number | null
+  total_output: number | null
+  projects_count: number
+  projects: ProjectOverviewCard[]
+}
+
+export interface GlobalOverviewMetrics {
+  average_oee: number | null
+  total_output: number | null
+  average_scrap_rate: number | null
+  total_downtime: number | null
+  total_locations: number
+  total_projects: number
+  on_target_projects: number
+}
+
+export interface OverviewResponse {
+  iso_year: number
+  iso_week: number
+  week_label: string
+  week_start: string
+  global_metrics: GlobalOverviewMetrics
+  locations: LocationOverview[]
+}
+

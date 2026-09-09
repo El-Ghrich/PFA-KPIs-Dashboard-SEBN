@@ -6,7 +6,8 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
 import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
+import Overview from './pages/Overview'
+import PlantDashboard from './pages/PlantDashboard'
 import WeeklyEntry from './pages/WeeklyEntry'
 import BulkDataEntry from './pages/BulkDataEntry'
 import UserManagement from './pages/UserManagement'
@@ -66,8 +67,8 @@ function SuperAdminRequired({ children }: { children: ReactNode }) {
   return <Navigate to="/" replace />
 }
 
-// Dynamic route for "/" dashboard — renders AdminLayout if logged in, PublicLayout if guest
-function DashboardRoute() {
+// Public-or-Admin wrapper for public landing & dashboard pages
+function PublicOrAdminView({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
 
   if (loading) {
@@ -75,18 +76,10 @@ function DashboardRoute() {
   }
 
   if (user) {
-    return (
-      <AdminLayout>
-        <Dashboard />
-      </AdminLayout>
-    )
+    return <AdminLayout>{children}</AdminLayout>
   }
 
-  return (
-    <PublicLayout>
-      <Dashboard />
-    </PublicLayout>
-  )
+  return <PublicLayout>{children}</PublicLayout>
 }
 
 export default function App() {
@@ -96,9 +89,13 @@ export default function App() {
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              {/* ── Dashboard: shows AdminLayout if logged in, PublicLayout if guest ── */}
-              <Route path="/" element={<DashboardRoute />} />
-              <Route path="/dashboard" element={<Navigate to="/" replace />} />
+              {/* ── Public Landing: Company Overview ── */}
+              <Route path="/" element={<PublicOrAdminView><Overview /></PublicOrAdminView>} />
+              <Route path="/overview" element={<PublicOrAdminView><Overview /></PublicOrAdminView>} />
+
+              {/* ── Detailed Plant Dashboard ── */}
+              <Route path="/dashboard" element={<PublicOrAdminView><PlantDashboard /></PublicOrAdminView>} />
+              <Route path="/plant-dashboard" element={<PublicOrAdminView><PlantDashboard /></PublicOrAdminView>} />
 
               {/* ── Auth: login page ── */}
               <Route path="/login" element={<Login />} />
