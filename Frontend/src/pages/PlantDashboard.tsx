@@ -214,7 +214,7 @@ export default function PlantDashboard() {
             <EmptyState className="h-64" message="Loading dashboard data..." />
           ) : (
             <>
-              {kpiList && <KpiGrid kpis={kpiList} diffValues={compareDiffValues} />}
+              {kpiList && <KpiGrid kpis={kpiList} diffValues={compareDiffValues} targets={settings.kpiTargets} />}
               <TrendSection weekData={chartWeekData} good={good} bad={bad} />
               <KeyTakeawaysSection projectId={filters.projectId} projectName={projectName} />
             </>
