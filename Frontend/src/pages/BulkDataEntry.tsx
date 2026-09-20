@@ -12,7 +12,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useExcelPaste } from '../hooks/useExcelPaste'
 import { buildDefaultFilters } from '../features/dashboard/filters'
 import { useSettings } from '../hooks/useSettings'
-import { mondayOfISOWeek, weekLabelFromNumber } from '../lib/isoDate'
+import { mondayOfISOWeekString, getISOWeek, weekLabelFromNumber } from '../lib/isoDate'
 import type { FilterState, Project, KPIDefinition } from '../types'
 import { ClipboardPaste, CheckCircle2, UploadCloud, Trash2, RotateCcw, AlertCircle, ArrowRight } from 'lucide-react'
 
@@ -91,17 +91,7 @@ export default function BulkDataEntry() {
     let maxWeek = 0
     records.forEach((r) => {
       if (r.record_date) {
-        const d = new Date(r.record_date)
-        // Compute ISO week
-        const target = new Date(d.valueOf())
-        const dayNr = (d.getDay() + 6) % 7
-        target.setDate(target.getDate() - dayNr + 3)
-        const firstThursday = target.valueOf()
-        target.setMonth(0, 1)
-        if (target.getDay() !== 4) {
-          target.setMonth(0, 1 + ((4 - target.getDay() + 7) % 7))
-        }
-        const week = 1 + Math.round((firstThursday - target.valueOf()) / 604800000)
+        const week = getISOWeek(r.record_date)
         if (week > maxWeek) maxWeek = week
       }
     })
@@ -241,8 +231,7 @@ export default function BulkDataEntry() {
       if (!r.weekNum || r.weekNum < 1 || r.weekNum > 53) continue
       const setId = resolveSetId(r.setRaw)
       if (!setId) continue
-      const recordDateObj = mondayOfISOWeek(filters.year, r.weekNum)
-      const recordDateStr = recordDateObj.toISOString().split('T')[0]
+      const recordDateStr = mondayOfISOWeekString(filters.year, r.weekNum)
 
       const kpiValues: { key: string; val: number | null }[] = [
         { key: 'output', val: r.output },

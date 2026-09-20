@@ -22,6 +22,7 @@ import {
   getCurrentISOWeek,
   isoWeekRange,
   mondayOfISOWeek,
+  mondayOfISOWeekString,
   weekLabelFromNumber,
 } from "../lib/isoDate";
 import { formatDateRange } from "../lib/format";
@@ -88,7 +89,7 @@ export default function WeeklyEntry() {
 
   const enabled = !!projectId && !!setId;
   const recordDate = useMemo(
-    () => (enabled ? toISODate(mondayOfISOWeek(year, week)) : ""),
+    () => (enabled ? mondayOfISOWeekString(year, week) : ""),
     [enabled, year, week],
   );
   const weekRange = useMemo(() => isoWeekRange(year, week), [year, week]);
