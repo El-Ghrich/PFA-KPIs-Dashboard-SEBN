@@ -186,3 +186,25 @@ describe('weekLabel', () => {
     expect(weekLabel(new Date(2026, 0, 12))).toBe('CW03')
   })
 })
+
+describe('mondayOfISOWeekString & Week 31 mapping', () => {
+  it('calculates Monday of Week 31 2026 as 2026-07-27', () => {
+    expect(mondayOfISOWeek('2026-07-27' as unknown as number, 31)).toBeDefined()
+    expect(getISOWeek('2026-07-27')).toBe(31)
+  })
+
+  it('correctly maps Week 31 to 2026-07-27 and back to Week 31 without shifting to Week 30', () => {
+    const monday31 = mondayOfISOWeek(2026, 31)
+    expect(monday31.getFullYear()).toBe(2026)
+    expect(monday31.getMonth()).toBe(6) // July (0-indexed)
+    expect(monday31.getDate()).toBe(27)
+
+    expect(getISOWeek('2026-07-27')).toBe(31)
+    expect(weekLabel('2026-07-27')).toBe('CW31')
+
+    // Control: 2026-07-26 is Sunday of CW30
+    expect(getISOWeek('2026-07-26')).toBe(30)
+    expect(weekLabel('2026-07-26')).toBe('CW30')
+  })
+})
+
