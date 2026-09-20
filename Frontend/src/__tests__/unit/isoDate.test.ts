@@ -190,7 +190,6 @@ describe('weekLabel', () => {
 describe('mondayOfISOWeekString & Week 31 mapping', () => {
   it('calculates Monday of Week 31 2026 as 2026-07-27', () => {
     expect(mondayOfISOWeek('2026-07-27' as unknown as number, 31)).toBeDefined()
-    const monStr = mondayOfISOWeek('2026-07-27' as unknown as number, 31)
     expect(getISOWeek('2026-07-27')).toBe(31)
   })
 

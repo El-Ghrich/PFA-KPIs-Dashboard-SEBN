@@ -21,7 +21,6 @@ import { useSettings } from "../hooks/useSettings";
 import {
   getCurrentISOWeek,
   isoWeekRange,
-  mondayOfISOWeek,
   mondayOfISOWeekString,
   weekLabelFromNumber,
 } from "../lib/isoDate";
@@ -36,12 +35,7 @@ const WEEK_OPTIONS = Array.from({ length: 53 }, (_, i) => ({
 
 const YEAR_OPTIONS = YEARS.map((y) => ({ value: Number(y), label: y }));
 
-function toISODate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
+
 
 export default function WeeklyEntry() {
   const navigate = useNavigate();
