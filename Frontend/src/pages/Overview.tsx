@@ -2,23 +2,23 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Factory,
-  TrendingUp,
-  TrendingDown,
   ChevronLeft,
   ChevronRight,
   Search,
   CheckCircle2,
   AlertTriangle,
   Clock,
-  ArrowRight,
   Globe2,
   RefreshCw,
-  Sparkles,
+  Target,
 } from 'lucide-react'
 import { overviewApi } from '../api/overview'
 import { useSettings } from '../hooks/useSettings'
 import { isoWeekRange } from '../lib/isoDate'
 import { formatDateRange } from '../lib/format'
+import { CountryFlag } from '../components/CountryFlag'
+import { RadialGauge } from '../components/RadialGauge'
+import { getProjectStatus } from '../lib/projectStatusMap'
 import type { OverviewResponse, ProjectOverviewCard } from '../types'
 
 export default function Overview() {
@@ -34,7 +34,6 @@ export default function Overview() {
 
   const [week, setWeek] = useState<number>(() => {
     const pWeek = searchParams.get('week')
-    // Default to 34 if 2026 (matching seeded weeks) or fallback to 34
     return pWeek ? parseInt(pWeek, 10) : 34
   })
 
@@ -44,7 +43,7 @@ export default function Overview() {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch overview data
+  // Fetch overview data directly from DB via API
   const fetchOverview = useCallback(async (y: number, w: number) => {
     setIsLoading(true)
     setError(null)
@@ -133,68 +132,60 @@ export default function Overview() {
       .filter((loc) => loc.projects.length > 0)
   }, [data?.locations, selectedLocation, searchQuery])
 
-  // Helpers for OEE color status
-  const getOeeColor = (val: number | null | undefined) => {
-    if (val === null || val === undefined) return 'text-on-surface-variant bg-surface-container'
-    if (val >= 80.0) return 'text-emerald-700 bg-emerald-50 border-emerald-200'
-    if (val >= 75.0) return 'text-amber-700 bg-amber-50 border-amber-200'
-    return 'text-rose-700 bg-rose-50 border-rose-200'
-  }
-
-  const getOeeBadge = (val: number | null | undefined) => {
-    if (val === null || val === undefined) return { label: 'No Data', variant: 'neutral' }
-    if (val >= 80.0) return { label: 'Target Met', variant: 'success' }
-    if (val >= 75.0) return { label: 'Near Target', variant: 'warning' }
-    return { label: 'Needs Action', variant: 'danger' }
-  }
-
   return (
-    <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface">
+    <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-slate-50/50">
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-8 py-6 sm:py-8 space-y-8">
-          {/* ── 1. Hero Header & Quick Controls ────────────────────────────────── */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 pb-2 border-b border-border-card">
+        <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-8 py-6 sm:py-8 space-y-6">
+          {/* ── 1. Hero Header matching Reference Layout ──────────────────────── */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-2 border-b border-slate-200">
             <div>
-              <div className="flex items-center gap-2.5 mb-1.5">
+              <div className="flex items-center gap-2 mb-1.5">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide bg-primary/10 text-primary border border-primary/20">
                   <Globe2 className="w-3.5 h-3.5" />
+                  Manufacturing Overview
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   SEBN Global Footprint
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-xs text-on-surface-variant">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 live-pulse" />
-                  Live Operational Network
-                </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
-                Manufacturing Overview
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-indigo-950">
+                HCM-S CIM3 Global project overview
               </h1>
-              <p className="text-sm text-on-surface-variant mt-1 max-w-2xl">
-                Global plant performance, OEE scorecard, and operational metrics across all international production sites.
+              <p className="text-sm text-slate-500 font-medium mt-1">
+                Status of performance/launch across all SEBN plants
               </p>
             </div>
 
-            {/* Week Selector Bar */}
-            <div className="flex flex-wrap items-center justify-center gap-3 bg-white p-2 rounded-xl border border-border-card shadow-xs">
-              <div className="flex items-center gap-1 bg-surface-container rounded-lg p-1 border border-border-card">
+            {/* Controls Bar: OEE Target Indicator + Week Selector */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* OEE Target Pill (as in reference image) */}
+              <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-50/80 border border-blue-200/80 text-blue-800 shadow-2xs">
+                <Target className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-bold tracking-tight">OEE Target: 65%</span>
+              </div>
+
+              {/* Week Selector */}
+              <div className="flex items-center gap-1 bg-white rounded-xl p-1 border border-slate-200 shadow-2xs">
                 <button
                   onClick={handlePrevWeek}
-                  className="p-1.5 text-on-surface-variant hover:text-on-surface hover:bg-white rounded-md transition-all"
+                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"
                   title="Previous Week"
                   aria-label="Previous Week"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <div className="px-3 py-1 text-center min-w-[130px]">
-                  <span className="text-xs font-bold text-on-surface block">
+                  <span className="text-xs font-bold text-slate-800 block">
                     Week {week}, {year}
                   </span>
-                  <span className="text-[10px] text-on-surface-variant block font-medium">
+                  <span className="text-[10px] text-slate-500 block font-medium">
                     {weekDates}
                   </span>
                 </div>
                 <button
                   onClick={handleNextWeek}
-                  className="p-1.5 text-on-surface-variant hover:text-on-surface hover:bg-white rounded-md transition-all"
+                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"
                   title="Next Week"
                   aria-label="Next Week"
                 >
@@ -202,11 +193,11 @@ export default function Overview() {
                 </button>
               </div>
 
-              {/* Jump to CW34 demo button if not on week 34 */}
+              {/* CW34 demo button */}
               {week !== 34 && year === 2026 && (
                 <button
                   onClick={() => changeWeek(34, 2026)}
-                  className="px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg border border-primary/20 transition-colors"
+                  className="px-2.5 py-2 text-xs font-semibold text-primary hover:bg-primary/5 rounded-xl border border-primary/20 transition-colors"
                   title="Jump to latest populated week"
                 >
                   CW34
@@ -216,7 +207,7 @@ export default function Overview() {
               <button
                 onClick={() => fetchOverview(year, week)}
                 disabled={isLoading}
-                className="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors disabled:opacity-50"
+                className="p-2 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-xl border border-slate-200 transition-colors disabled:opacity-50"
                 title="Refresh Data"
                 aria-label="Refresh Data"
               >
@@ -241,118 +232,108 @@ export default function Overview() {
             </div>
           )}
 
-          {/* ── 2. Global Company KPI Summary Banner ────────────────────────────── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Global OEE Card */}
-            <div className="bg-white rounded-2xl p-5 border border-border-card shadow-xs relative overflow-hidden group hover:border-primary/40 transition-all">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+          {/* ── 2. Real Totals & Metrics Summary Bar ──────────────────────────── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* Real Global OEE Card */}
+            <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   Global Company OEE
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-primary/10 text-primary">
+                <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700">
                   Target 80%
                 </span>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl sm:text-4xl font-black tracking-tight text-on-surface">
-                  {isLoading ? '...' : data?.global_metrics.average_oee != null ? `${data.global_metrics.average_oee}%` : 'N/A'}
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+                  {isLoading
+                    ? '...'
+                    : data?.global_metrics.average_oee != null
+                    ? `${data.global_metrics.average_oee}%`
+                    : 'N/A'}
                 </span>
-                {data?.global_metrics.average_oee && (
-                  <span
-                    className={`inline-flex items-center text-xs font-semibold ${
-                      data.global_metrics.average_oee >= 80 ? 'text-emerald-600' : 'text-amber-600'
-                    }`}
-                  >
-                    {data.global_metrics.average_oee >= 80 ? 'Above Target' : 'Action Required'}
-                  </span>
-                )}
               </div>
-              {/* Progress bar */}
-              <div className="mt-3 w-full bg-surface-container rounded-full h-2 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${
-                    (data?.global_metrics.average_oee ?? 0) >= 80 ? 'bg-emerald-500' : 'bg-amber-500'
-                  }`}
-                  style={{ width: `${Math.min(data?.global_metrics.average_oee ?? 0, 100)}%` }}
-                />
-              </div>
-              <p className="text-[11px] text-on-surface-variant mt-2 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                <span>
-                  <strong>{data?.global_metrics.on_target_projects ?? 0}</strong> of {data?.global_metrics.total_projects ?? 0} projects meeting target
+              <p className="text-[11px] text-slate-500 mt-2 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="truncate">
+                  <strong>{data?.global_metrics.on_target_projects ?? 0}</strong> of{' '}
+                  {data?.global_metrics.total_projects ?? 0} on target
                 </span>
               </p>
             </div>
 
-            {/* Total Output Card */}
-            <div className="bg-white rounded-2xl p-5 border border-border-card shadow-xs hover:border-primary/40 transition-all">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+            {/* Real Total Output Card */}
+            <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   Total Weekly Output
                 </span>
-                <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <Factory className="w-4 h-4" />
-                </div>
+                <Factory className="w-3.5 h-3.5 text-blue-600" />
               </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl sm:text-4xl font-black tracking-tight text-on-surface">
-                  {isLoading ? '...' : data?.global_metrics.total_output ? data.global_metrics.total_output.toLocaleString() : 'N/A'}
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+                  {isLoading
+                    ? '...'
+                    : data?.global_metrics.total_output != null
+                    ? Number(data.global_metrics.total_output).toLocaleString()
+                    : 'N/A'}
                 </span>
-                <span className="text-xs text-on-surface-variant font-medium">units</span>
+                <span className="text-xs text-slate-500 font-medium">units</span>
               </div>
-              <p className="text-[11px] text-on-surface-variant mt-3 flex items-center gap-1">
-                <span>Cumulative across all plant sets</span>
+              <p className="text-[11px] text-slate-500 mt-2 truncate">
+                Cumulative across all plant sets
               </p>
             </div>
 
-            {/* Average Scrap Rate Card */}
-            <div className="bg-white rounded-2xl p-5 border border-border-card shadow-xs hover:border-primary/40 transition-all">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+            {/* Real Average Scrap Rate Card */}
+            <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   Avg Scrap Rate
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-surface-container text-on-surface-variant">
-                  Target &lt; 2%
+                <span className="text-[10px] font-semibold text-slate-500">Target &lt; 2%</span>
+              </div>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+                  {isLoading
+                    ? '...'
+                    : data?.global_metrics.average_scrap_rate != null
+                    ? `${data.global_metrics.average_scrap_rate}%`
+                    : 'N/A'}
                 </span>
               </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl sm:text-4xl font-black tracking-tight text-on-surface">
-                  {isLoading ? '...' : data?.global_metrics.average_scrap_rate != null ? `${data.global_metrics.average_scrap_rate}%` : 'N/A'}
-                </span>
-              </div>
-              <p className="text-[11px] text-on-surface-variant mt-3 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                <span>Quality benchmark maintained</span>
+              <p className="text-[11px] text-slate-500 mt-2 truncate">
+                Quality benchmark maintained
               </p>
             </div>
 
-            {/* Total Downtime Card */}
-            <div className="bg-white rounded-2xl p-5 border border-border-card shadow-xs hover:border-primary/40 transition-all">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+            {/* Real Total Downtime Card */}
+            <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   Total Downtime
                 </span>
-                <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-                  <Clock className="w-4 h-4" />
-                </div>
+                <Clock className="w-3.5 h-3.5 text-amber-600" />
               </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl sm:text-4xl font-black tracking-tight text-on-surface">
-                  {isLoading ? '...' : data?.global_metrics.total_downtime != null ? `${data.global_metrics.total_downtime}` : 'N/A'}
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+                  {isLoading
+                    ? '...'
+                    : data?.global_metrics.total_downtime != null
+                    ? `${data.global_metrics.total_downtime}`
+                    : 'N/A'}
                 </span>
-                <span className="text-xs text-on-surface-variant font-medium">hrs</span>
+                <span className="text-xs text-slate-500 font-medium">hrs</span>
               </div>
-              <p className="text-[11px] text-on-surface-variant mt-3 flex items-center gap-1">
-                <span>Total recorded line stoppages</span>
+              <p className="text-[11px] text-slate-500 mt-2 truncate">
+                Recorded line stoppage duration
               </p>
             </div>
-
-            
           </div>
 
-          {/* ── 3. Filter Bar (Location tabs + Search) ─────────────────────────── */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-3.5 rounded-2xl items-center border border-border-card shadow-xs">
-            {/* Location Tabs */}
+          {/* ── 3. Interactive Filter Bar (Location tabs + Search) ─────────────── */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+            {/* Location Filter Pills */}
             <div className="flex flex-wrap items-center gap-1.5">
               {locationOptions.map((loc) => {
                 const isSelected = selectedLocation === loc
@@ -365,16 +346,16 @@ export default function Overview() {
                   <button
                     key={loc}
                     onClick={() => setSelectedLocation(loc)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 ${
                       isSelected
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'bg-surface hover:bg-surface-container text-on-surface-variant hover:text-on-surface'
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200/70 text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     <span>{loc === 'All' ? 'All Plants' : `${loc} Plant`}</span>
                     <span
                       className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                        isSelected ? 'bg-white/20 text-white' : 'bg-surface-container-high text-on-surface-variant'
+                        isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
                       }`}
                     >
                       {count}
@@ -385,43 +366,46 @@ export default function Overview() {
             </div>
 
             {/* Search Input */}
-            <div className="relative min-w-[240px]">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
+            <div className="relative min-w-[220px]">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search projects (e.g. MEB31, BMW)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3.5 py-1.5 text-xs bg-surface-container/60 hover:bg-surface-container focus:bg-white border border-border-card focus:border-primary rounded-xl transition-colors outline-hidden text-on-surface placeholder:text-on-surface-variant/50"
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-primary rounded-lg transition-colors outline-hidden text-slate-800 placeholder:text-slate-400"
               />
             </div>
           </div>
 
-          {/* ── 4. Locations & Project Cards Grid ───────────────────────────────── */}
+          {/* ── 4. Project Cards Grid (100% Real DB Data) ──────────────────────── */}
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {[1, 2, 3, 4, 5, 6].map((idx) => (
                 <div
                   key={idx}
-                  className="h-72 bg-white rounded-2xl border border-border-card p-6 animate-pulse flex flex-col justify-between"
+                  className="h-64 bg-white rounded-2xl border border-slate-200/80 p-5 animate-pulse flex flex-col justify-between"
                 >
-                  <div className="space-y-3">
-                    <div className="h-5 bg-surface-container rounded-md w-1/3" />
-                    <div className="h-4 bg-surface-container rounded-md w-1/2" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-5 bg-slate-200 rounded-xs" />
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-4 bg-slate-200 rounded-sm w-3/4" />
+                      <div className="h-3 bg-slate-200 rounded-sm w-1/2" />
+                    </div>
                   </div>
-                  <div className="h-12 bg-surface-container rounded-xl" />
-                  <div className="h-16 bg-surface-container rounded-xl" />
+                  <div className="w-32 h-20 bg-slate-100 rounded-xl mx-auto" />
+                  <div className="h-4 bg-slate-200 rounded-sm w-1/2 mx-auto" />
                 </div>
               ))}
             </div>
           ) : filteredLocations.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-border-card p-12 text-center max-w-lg mx-auto">
-              <div className="w-12 h-12 rounded-full bg-surface-container text-on-surface-variant mx-auto flex items-center justify-center mb-3">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center max-w-md mx-auto shadow-2xs">
+              <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-500 mx-auto flex items-center justify-center mb-3">
                 <Search className="w-6 h-6" />
               </div>
-              <h3 className="text-base font-semibold text-on-surface">No Projects Found</h3>
-              <p className="text-xs text-on-surface-variant mt-1">
-                No manufacturing projects matched your search criteria for week {week}. Try resetting your filters.
+              <h3 className="text-base font-bold text-slate-800">No Projects Found</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                No manufacturing projects matched your search criteria for week {week}.
               </p>
               <button
                 onClick={() => {
@@ -434,201 +418,64 @@ export default function Overview() {
               </button>
             </div>
           ) : (
-            <div className="space-y-10">
+            <div className="space-y-6">
               {filteredLocations.map((locGroup) => (
-                <div key={locGroup.location} className="space-y-4">
-                  {/* Location Header Banner */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gradient-to-r from-surface-container via-white to-surface-container/30 px-5 py-3.5 rounded-2xl border border-border-card">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-white border border-border-card shadow-xs flex items-center justify-center text-primary font-bold text-sm">
-                        {locGroup.location.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h2 className="text-base font-bold text-on-surface">{locGroup.location} Manufacturing Site</h2>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white border border-border-card text-on-surface-variant">
-                            {locGroup.projects.length} Active {locGroup.projects.length === 1 ? 'Project' : 'Projects'}
-                          </span>
-                        </div>
-                        <p className="text-xs text-on-surface-variant mt-0.5">
-                          Total Output: <strong>{locGroup.total_output?.toLocaleString() ?? 0} units</strong> this week
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Location OEE Badge */}
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <span className="text-[10px] uppercase font-semibold text-on-surface-variant block">
-                          Plant Aggregate OEE
-                        </span>
-                        <span className="text-lg font-black text-on-surface">
-                          {locGroup.average_oee != null ? `${locGroup.average_oee}%` : 'N/A'}
-                        </span>
-                      </div>
-                      <div
-                        className={`px-3 py-1 rounded-xl text-xs font-bold border ${getOeeColor(
-                          locGroup.average_oee
-                        )}`}
-                      >
-                        {getOeeBadge(locGroup.average_oee).label}
-                      </div>
-                    </div>
+                <div key={locGroup.location} className="space-y-3">
+                  {/* Subtle, unnoticeable country separator line with real totals */}
+                  <div className="flex items-center gap-3 pt-2 text-slate-400">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                      {locGroup.location} Manufacturing Site
+                    </span>
+                    {locGroup.average_oee != null && (
+                      <span className="text-xs font-medium text-slate-400 hidden sm:inline">
+                        (Avg OEE: <strong className="text-slate-600">{locGroup.average_oee}%</strong> • Output: <strong className="text-slate-600">{locGroup.total_output?.toLocaleString()}</strong>)
+                      </span>
+                    )}
+                    <div className="flex-1 h-px bg-slate-200/70" />
                   </div>
 
-                  {/* Project Cards in this Location */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {/* Project Cards in a 4-column responsive grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {locGroup.projects.map((project) => {
-                      const oeeBadge = getOeeBadge(project.oee)
-                      const isTargetMet = project.oee != null && project.oee >= 80
+                      const status = getProjectStatus(project.name, project.oee)
 
                       return (
                         <div
                           key={project.id}
                           onClick={() => handleCardClick(project)}
-                          className="bg-white rounded-2xl border border-border-card hover:border-primary/50 shadow-xs hover:shadow-md transition-all duration-300 p-5 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
+                          className="bg-white rounded-2xl border border-slate-200/80 hover:border-blue-400/80 shadow-2xs hover:shadow-md transition-all duration-200 p-4 sm:p-5 cursor-pointer flex flex-col justify-between group"
                         >
-                          {/* Accent Top Bar */}
-                          <div
-                            className={`absolute top-0 left-0 right-0 h-1 transition-all duration-300 ${
-                              isTargetMet
-                                ? 'bg-emerald-500'
-                                : project.oee && project.oee >= 75
-                                ? 'bg-amber-500'
-                                : 'bg-rose-500'
-                            }`}
-                          />
-
-                          <div>
-                            {/* Card Header */}
-                            <div className="flex items-start justify-between gap-3 mb-4">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <h3 className="text-lg font-bold text-on-surface group-hover:text-primary transition-colors">
-                                    {project.name}
-                                  </h3>
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    ACTIVE
-                                  </span>
-                                </div>
-                                <p className="text-xs text-on-surface-variant mt-1 flex items-center gap-1.5">
-                                  <span className="font-medium">{project.sets_count} Sets:</span>
-                                  <span className="truncate max-w-[200px] text-on-surface-variant/80">
-                                    {project.sets.join(', ')}
-                                  </span>
-                                </p>
-                              </div>
-
-                              {/* OEE Status Pill */}
-                              <div
-                                className={`px-2.5 py-1 rounded-xl text-xs font-bold border shrink-0 ${getOeeColor(
-                                  project.oee
-                                )}`}
-                              >
-                                {oeeBadge.label}
-                              </div>
+                          {/* Card Header: Real Flag from project.location + Real project.name + Real sets */}
+                          <div className="flex items-start gap-3 mb-2">
+                            <CountryFlag country={project.location} className="w-8 h-5.5 mt-0.5" />
+                            <div className="min-w-0 flex-1">
+                              <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                                {project.name}
+                              </h3>
+                              <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
+                                {project.location} • {project.sets && project.sets.length > 0 ? project.sets.join(', ') : `${project.sets_count} Sets`}
+                              </p>
                             </div>
-
-                            {/* OEE Highlight Section */}
-                            <div className="bg-surface-container/50 group-hover:bg-primary/5 rounded-xl p-3.5 border border-border-card group-hover:border-primary/20 transition-all mb-4">
-                              <div className="flex items-baseline justify-between mb-1.5">
-                                <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-                                  OEE Performance
-                                </span>
-                                {project.oee_diff != null && (
-                                  <span
-                                    className={`inline-flex items-center gap-0.5 text-xs font-bold ${
-                                      project.oee_diff >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                                    }`}
-                                  >
-                                    {project.oee_diff >= 0 ? (
-                                      <TrendingUp className="w-3.5 h-3.5" />
-                                    ) : (
-                                      <TrendingDown className="w-3.5 h-3.5" />
-                                    )}
-                                    {project.oee_diff >= 0 ? `+${project.oee_diff}%` : `${project.oee_diff}%`}
-                                  </span>
-                                )}
-                              </div>
-
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-3xl font-black tracking-tight text-on-surface">
-                                  {project.oee != null ? `${project.oee}%` : 'N/A'}
-                                </span>
-                                <span className="text-xs text-on-surface-variant font-medium">
-                                  target &gt;= 80%
-                                </span>
-                              </div>
-
-                              {/* OEE Mini Progress Bar */}
-                              <div className="w-full bg-border-card rounded-full h-1.5 mt-2 overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full ${
-                                    isTargetMet ? 'bg-emerald-500' : (project.oee ?? 0) >= 75 ? 'bg-amber-500' : 'bg-rose-500'
-                                  }`}
-                                  style={{ width: `${Math.min(project.oee ?? 0, 100)}%` }}
-                                />
-                              </div>
-                            </div>
-
-                            {/* Secondary Metrics Grid */}
-                            <div className="grid grid-cols-3 gap-2 text-center mb-4">
-                              <div className="bg-white p-2 rounded-xl border border-border-card">
-                                <span className="text-[10px] uppercase font-semibold text-on-surface-variant block">
-                                  Output
-                                </span>
-                                <span className="text-xs font-bold text-on-surface block mt-0.5">
-                                  {project.output != null ? project.output.toLocaleString() : 'N/A'}
-                                </span>
-                                <span className="text-[9px] text-on-surface-variant">units</span>
-                              </div>
-
-                              <div className="bg-white p-2 rounded-xl border border-border-card">
-                                <span className="text-[10px] uppercase font-semibold text-on-surface-variant block">
-                                  Scrap Rate
-                                </span>
-                                <span
-                                  className={`text-xs font-bold block mt-0.5 ${
-                                    project.scrap_rate && project.scrap_rate > 2.0 ? 'text-amber-600' : 'text-on-surface'
-                                  }`}
-                                >
-                                  {project.scrap_rate != null ? `${project.scrap_rate}%` : 'N/A'}
-                                </span>
-                                <span className="text-[9px] text-on-surface-variant">target &lt; 2%</span>
-                              </div>
-
-                              <div className="bg-white p-2 rounded-xl border border-border-card">
-                                <span className="text-[10px] uppercase font-semibold text-on-surface-variant block">
-                                  Downtime
-                                </span>
-                                <span className="text-xs font-bold text-on-surface block mt-0.5">
-                                  {project.downtime != null ? `${project.downtime}h` : 'N/A'}
-                                </span>
-                                <span className="text-[9px] text-on-surface-variant">hours</span>
-                              </div>
-                            </div>
-
-                            {/* Weekly Highlight Snippet */}
-                            {project.latest_highlight && (
-                              <div
-                                className={`p-2.5 rounded-xl text-xs flex items-start gap-2 border mb-3 ${
-                                  project.highlight_status === 'GOOD'
-                                    ? 'bg-emerald-50/70 border-emerald-200 text-emerald-800'
-                                    : 'bg-amber-50/70 border-amber-200 text-amber-800'
-                                }`}
-                              >
-                                <Sparkles className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary" />
-                                <span className="line-clamp-2 leading-relaxed">
-                                  {project.latest_highlight}
-                                </span>
-                              </div>
-                            )}
                           </div>
 
-                          {/* Card Footer Link */}
-                          <div className="pt-3 border-t border-border-card flex items-center justify-between text-xs font-semibold text-primary group-hover:text-primary">
-                            <span>Open Plant Dashboard</span>
-                            <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1.5 transition-transform duration-200" />
+                          {/* Card Body: Semicircular Radial OEE Gauge displaying Real OEE */}
+                          <div className="py-2 flex items-center justify-center">
+                            <RadialGauge value={project.oee} target={65} />
+                          </div>
+
+                          {/* Card Footer: Only the status note (Successful launch or Ramp-up phase) */}
+                          <div className="text-center pt-2 mt-auto border-t border-slate-100">
+                            <span className={`text-xs font-bold ${status.statusColor}`}>
+                              {status.statusNote}
+                            </span>
+                            {project.latest_highlight && (
+                              <p
+                                className="text-[10px] text-slate-400 mt-0.5 truncate max-w-[200px] mx-auto font-medium"
+                                title={project.latest_highlight}
+                              >
+                                {project.latest_highlight}
+                              </p>
+                            )}
                           </div>
                         </div>
                       )
